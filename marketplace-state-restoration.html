@@ -230,7 +230,7 @@ REPORT_GAS=1 npm test test/Marketplace.test.js  </code></pre>
 ·--------------------------------------|-------------|-------------|--------------|---------------|-------------·</code></pre>
 
 <h2>Additional Interaction (AI) approach</h2>
-<p>This <a href="https://github.com/status-im/dagger-contracts/tree/mark/list-of-active-sales">branch</a> is using two <code>EnumerableSet.Bytes32Sets</code> to keep track of requests per client, and slots per host. The downside of this approach is that there is an additional host interaction required to free their slot when a request has failed. There is also no reference integrity as in the DAL approach.</p>
+<p>This <a href="https://github.com/status-im/dagger-contracts/tree/list-of-active-sales">branch</a> is using two <code>EnumerableSet.Bytes32Sets</code> to keep track of requests per client, and slots per host. The downside of this approach is that there is an additional host interaction required to free their slot when a request has failed. There is also no reference integrity as in the DAL approach.</p>
 <pre><code>·----------------------------------------|---------------------------|--------------|-----------------------------·
 |          Solc version: 0.8.8           ·  Optimizer enabled: true  ·  Runs: 1000  ·  Block limit: 30000000 gas  │
 ·········································|···························|··············|······························

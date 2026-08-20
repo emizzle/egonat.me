@@ -1,0 +1,155 @@
+name: Link check
+
+on:
+  schedule:
+    # Weekly. External link rot is slow, and checking ~50 URLs hourly would just
+    # burn other people's rate limits. Off-peak minute for the same reason as uptime.yml.
+    - cron: '23 4 * * 1'
+  push:
+    branches: [main]
+    paths: ['**.html', '**.md', 'lychee.toml']
+  workflow_dispatch:
+
+concurrency:
+  group: link-check
+  cancel-in-progress: true
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      LABEL: broken-links
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # Two passes, because the repo has two different link namespaces and one
+      # --base-url cannot serve both. Getting this wrong is not subtle: it reports
+      # every link in one of the two as broken.
+      #
+      # Pass 1 - the site pages. Their links are written the way a browser will see
+      # them: root-absolute and extensionless (/slot-reservations) even though the
+      # file on disk is slot-reservations.html. Resolving those against the
+      # filesystem would fail every internal link, so they resolve against the live
+      # site instead, which also means we are testing what Pages actually serves.
+      #
+      # Globbing rather than listing pages means a new page is picked up
+      # automatically. lychee does not crawl recursively, so the glob is the only
+      # thing standing between us and silently missing one.
+      - name: Check links on the site pages
+        id: pages
+        uses: lycheeverse/lychee-action@v2.9.0
+        with:
+          args: >-
+            --base-url https://egonat.me
+            --accept 200
+            --max-retries 3
+            --timeout 20
+            --no-progress
+            '*.html'
+          format: markdown
+          output: ./lychee-pages.md
+          # Must be false. The action exits non-zero on broken links by default,
+          # which would kill the job before the reporting step below ever runs - the
+          # single most common way this workflow shape silently does nothing.
+          fail: false
+          # Lets lychee authenticate the ~33 github.com links via the API instead
+          # of hitting anonymous rate limits and reporting 429s as breakage.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Pass 2 - the README. Deliberately no --base-url: its relative links point at
+      # files in this repo, not at pages on the site, so they must resolve against
+      # the filesystem the way GitHub renders them.
+      - name: Check links in the README
+        id: readme
+        uses: lycheeverse/lychee-action@v2.9.0
+        with:
+          args: >-
+            --accept 200
+            --max-retries 3
+            --timeout 20
+            --no-progress
+            'README.md'
+          format: markdown
+          output: ./lychee-readme.md
+          fail: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # always() because `fail: false` only stops lychee failing its own step; any
+      # other hiccup above would still skip this one.
+      - name: Report or clear the broken-link issue
+        if: always()
+        env:
+          PAGES_CODE: ${{ steps.pages.outputs.exit_code }}
+          README_CODE: ${{ steps.readme.outputs.exit_code }}
+        run: |
+          S=.github/scripts/alert-issue.sh
+          now_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          if [ ! -f ./lychee-pages.md ] || [ ! -f ./lychee-readme.md ]; then
+            echo "A lychee report is missing (pages=${PAGES_CODE:-unset} readme=${README_CODE:-unset})."
+            echo "Treating that as an infrastructure failure rather than a link result,"
+            echo "and leaving any existing '$LABEL' issue alone."
+            exit 1
+          fi
+
+          if [ "${PAGES_CODE:-1}" = "0" ] && [ "${README_CODE:-1}" = "0" ]; then
+            cat > /tmp/comment.md <<EOF
+          ✅ **All links resolving again** as of $now_iso.
+
+          Closing automatically. See the [workflow run]($RUN_URL) for the full report.
+          EOF
+            "$S" resolve "$LABEL" /tmp/comment.md
+            exit 0
+          fi
+
+          # Sum the error counts out of lychee's summary tables for the title, but
+          # never let a format change on their end break the report itself.
+          count_errors() {
+            sed -n 's/.*Errors *| *\([0-9][0-9]*\).*/\1/p' "$1" | head -1
+          }
+          # Count only the passes we are actually reporting, so the number in the
+          # title can never disagree with the sections in the body below.
+          p=0
+          if [ "${PAGES_CODE:-1}" != "0" ]; then p="$(count_errors ./lychee-pages.md)"; p="${p:-0}"; fi
+          r=0
+          if [ "${README_CODE:-1}" != "0" ]; then r="$(count_errors ./lychee-readme.md)"; r="${r:-0}"; fi
+          total=$(( p + r ))
+          if [ "$total" -gt 0 ]; then
+            title="🔗 $total broken link(s) on egonat.me"
+          else
+            title="🔗 Broken links on egonat.me"
+          fi
+
+          {
+            echo "Link check failed on $now_iso ([workflow run]($RUN_URL))."
+            echo
+            echo "Site-page links are resolved against the live site, so those are URLs a"
+            echo "visitor would actually hit. README links are resolved against the repo."
+            echo "Known-good exceptions live in \`lychee.toml\`; if something below is a"
+            echo "false positive, add it there rather than ignoring the issue."
+            if [ "${PAGES_CODE:-1}" != "0" ]; then
+              echo
+              echo "## Site pages"
+              echo
+              cat ./lychee-pages.md
+            fi
+            if [ "${README_CODE:-1}" != "0" ]; then
+              echo
+              echo "## README"
+              echo
+              cat ./lychee-readme.md
+            fi
+            echo
+            echo "This issue is updated in place on each run and closed automatically once"
+            echo "every link resolves again."
+          } > /tmp/body.md
+
+          "$S" sync "$LABEL" "$title" /tmp/body.md

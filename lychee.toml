@@ -1,0 +1,21 @@
+# Link-checker config. See .github/workflows/link-check.yml.
+#
+# Every entry below was confirmed by hand before being added - none of them are
+# speculative. Anything not listed here is expected to return 200, so a new
+# failure is a real one.
+
+exclude = [
+  # rel="preconnect" hints, not navigable URLs. A bare GET on either returns 404,
+  # and they appear on all five pages, so leaving them in would mean ten permanent
+  # false positives drowning any real breakage.
+  '^https://fonts\.gstatic\.com/?$',
+  # Anchored with /?$ so the actual stylesheet URL (fonts.googleapis.com/css2?...)
+  # is still checked - only the bare-domain preconnect hint is skipped.
+  '^https://fonts\.googleapis\.com/?$',
+
+  # Serves 403 to non-browser clients. Verified reachable in a browser.
+  '^https://hackmd\.io/',
+]
+
+# mailto: and data: URIs are skipped by lychee natively, so hireme@egonat.me and
+# the inline SVG favicons need no entries here.

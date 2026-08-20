@@ -28,6 +28,28 @@ npm start
 
 GitHub pages runs off the `main` branch, so push to `main` to deploy.
 
+## Monitoring
+
+Three scheduled workflows watch the live site. Both monitors report through GitHub issues, so alerts arrive by email without any external service.
+
+| Workflow | When | What it does |
+|---|---|---|
+| [`uptime.yml`](.github/workflows/uptime.yml) | Hourly | Checks that `https://egonat.me/` returns 200. Opens an issue labelled `uptime` when it does not, updates that issue in place with a running downtime figure on each subsequent failure, and closes it on recovery. |
+| [`link-check.yml`](.github/workflows/link-check.yml) | Weekly, and on every push to `main` | Runs [lychee](https://github.com/lycheeverse/lychee) over every page and reports links that do not resolve, under the `broken-links` label. |
+| [`keepalive.yml`](.github/workflows/keepalive.yml) | Monthly | Pushes an empty commit to the orphan `keepalive` branch. Nothing to do with the site — see below. |
+
+Both monitors can be run on demand from the Actions tab. `uptime.yml` takes an optional URL, which is the easiest way to exercise the whole open → update → close cycle without waiting for an outage:
+
+```shell
+gh workflow run uptime.yml -f url=https://egonat.me/definitely-not-a-page
+```
+
+A couple of things worth knowing:
+
+- **Downtime figures are approximate.** The clock starts at the first *failed check*, not the true start of the outage, so at hourly cadence a reported duration is accurate to about ±1 hour. Scheduled runs are also delayed by GitHub under load, which is why downtime is measured from the issue's creation time rather than by counting checks.
+- **False positives belong in [`lychee.toml`](lychee.toml)**, not in the workflow. Some hosts serve 403 to anything that is not a browser, and `rel="preconnect"` hints are not navigable URLs. Each existing entry there says why it is there.
+- **`keepalive.yml` exists because GitHub disables scheduled workflows** in a public repository after 60 days without repository activity, which would silently switch off the two monitors. A monthly empty commit to a throwaway branch keeps them running while leaving this branch's history clean. If GitHub ever does disable them, it emails the repository admin and they can be switched back on from the Actions tab.
+
 ## Notes
 
 Maths on the design pages renders through KaTeX from CDN. Fonts are IBM Plex Sans and IBM Plex Mono from Google Fonts. Everything else is local.

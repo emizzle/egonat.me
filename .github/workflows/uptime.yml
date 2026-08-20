@@ -1,0 +1,164 @@
+name: Uptime
+
+on:
+  schedule:
+    # :17 rather than :00 on purpose. GitHub's docs warn that the schedule event
+    # "can be delayed during periods of high loads ... High load times include the
+    # start of every hour", so the top of the hour is the worst slot to pick.
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL to check (defaults to https://egonat.me/)'
+        required: false
+
+# Delayed runs can overlap. Queue them instead of letting two runs race to open
+# the same issue.
+concurrency:
+  group: uptime-check
+  cancel-in-progress: false
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      LABEL: uptime
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      # github.event.inputs, NOT inputs: the inputs context is empty on schedule
+      # runs, which would silently check an empty URL every hour.
+      TARGET_URL: ${{ github.event.inputs.url || 'https://egonat.me/' }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Probe the site
+        id: probe
+        run: |
+          # Three attempts before declaring the site down, so a transient DNS or
+          # TLS blip does not open an issue at 3am.
+          status=""
+          detail=""
+          err_file="$(mktemp)"
+          for attempt in 1 2 3; do
+            rc=0
+            # stderr goes to its own file: -w '%{http_code}' prints "000" to stdout
+            # on failure, which would otherwise bury curl's actual message - and that
+            # message is the whole diagnostic value of the issue we are about to open.
+            out="$(curl -sS -o /dev/null -w '%{http_code}' -L --max-time 20 "$TARGET_URL" 2>"$err_file")" || rc=$?
+            if [ "$rc" -eq 0 ]; then
+              status="$out"
+              detail="HTTP $out"
+            else
+              status=""
+              detail="curl exit $rc ($(tr -d '\r' < "$err_file" | tail -1))"
+            fi
+            echo "attempt $attempt: $detail"
+            if [ "$status" = "200" ]; then
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              sleep 10
+            fi
+          done
+
+          # -L follows redirects, so this is the *final* status - the plain reading
+          # of "responding with 200".
+          if [ "$status" = "200" ]; then
+            echo "up=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "up=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "detail=$detail" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the downtime issue
+        if: steps.probe.outputs.up == 'false'
+        env:
+          DETAIL: ${{ steps.probe.outputs.detail }}
+        run: |
+          S=.github/scripts/alert-issue.sh
+          now_epoch="$(date -u +%s)"
+          now_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          existing="$("$S" find "$LABEL")"
+          if [ -n "$existing" ]; then
+            number="${existing%% *}"
+            since="${existing##* }"
+            # Downtime is anchored on the issue's createdAt, never on
+            # (consecutive checks x 1h): scheduled runs get delayed and can be
+            # skipped entirely, so multiplying would report a confident wrong number.
+            since_epoch="$("$S" epoch "$since")"
+            down_secs=$(( now_epoch - since_epoch ))
+            checks="$(gh issue view "$number" --json body --jq .body |
+                      sed -n 's/.*<!-- checks:\([0-9][0-9]*\) -->.*/\1/p' | head -1)"
+            checks="$(( ${checks:-0} + 1 ))"
+          else
+            since="$now_iso"
+            down_secs=0
+            checks=1
+          fi
+          duration="$("$S" duration "$down_secs")"
+
+          cat > /tmp/body.md <<EOF
+          **Down since:** $since · **Detected downtime:** $duration · **Failed checks:** $checks · **Last result:** $DETAIL
+
+          \`$TARGET_URL\` is not returning HTTP 200.
+
+          | | |
+          |---|---|
+          | URL | $TARGET_URL |
+          | Last checked | $now_iso |
+          | Result | $DETAIL |
+          | Workflow run | [$GITHUB_RUN_ID]($RUN_URL) |
+
+          Each check makes three attempts ten seconds apart before reporting the site
+          as down, so this is not a single transient failure.
+
+          This issue is updated in place on every failed hourly check and closed
+          automatically once the site returns 200 again. *Detected downtime* is measured
+          from the first failed check rather than the true start of the outage, so at
+          hourly cadence it is accurate to roughly ±1 hour.
+
+          <!-- checks:$checks -->
+          EOF
+
+          "$S" sync "$LABEL" "🔴 egonat.me is down" /tmp/body.md
+
+      - name: Close the downtime issue on recovery
+        if: steps.probe.outputs.up == 'true'
+        env:
+          DETAIL: ${{ steps.probe.outputs.detail }}
+        run: |
+          S=.github/scripts/alert-issue.sh
+          existing="$("$S" find "$LABEL")"
+          if [ -z "$existing" ]; then
+            echo "Site is up and there is no open '$LABEL' issue - nothing to do."
+            exit 0
+          fi
+
+          since="${existing##* }"
+          now_epoch="$(date -u +%s)"
+          now_iso="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          since_epoch="$("$S" epoch "$since")"
+          duration="$("$S" duration "$(( now_epoch - since_epoch ))")"
+
+          cat > /tmp/comment.md <<EOF
+          ✅ **Recovered.** \`$TARGET_URL\` is returning HTTP 200 again.
+
+          | | |
+          |---|---|
+          | Recovered at | $now_iso |
+          | First failed check | $since |
+          | Total detected downtime | **$duration** |
+          | Workflow run | [$GITHUB_RUN_ID]($RUN_URL) |
+
+          Closing automatically. Detected downtime is measured from the first failed
+          check, so the true outage may have started up to an hour earlier.
+          EOF
+
+          "$S" resolve "$LABEL" /tmp/comment.md
