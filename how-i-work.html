@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231B4D7A%27/%3E%3Ctext x=%2732%27 y=%2744%27 font-family=%27ui-monospace,monospace%27 font-size=%2734%27 font-weight=%27600%27 fill=%27%23FBFAF7%27 text-anchor=%27middle%27%3E%7B%7D%3C/text%3E%3C/svg%3E">
+<title>How I work: slot reservations end-to-end &middot; Eric Mastro</title>
+<meta name="description" content="One feature traced from research design through epic breakdown, cross-repository implementation and specification.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBFAF7;
+    --paper-2:#F2F0EA;
+    --graphite:#21262B;
+    --slate:#5C666E;
+    --rule:#DDD9D0;
+    --plot:#1B4D7A;
+    --signal:#8B2A6B;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+    --wrap:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--graphite);
+    font-family:var(--sans);font-size:16.5px;line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--wrap);margin:0 auto;padding:0 28px}
+  a{color:var(--plot);text-decoration:none;border-bottom:1px solid rgba(27,77,122,.3)}
+  a:hover{border-bottom-color:var(--plot)}
+  a:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:2px}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;border-bottom:1px solid var(--rule);overflow:hidden}
+  #net{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hero-inner{position:relative;padding:96px 0 84px;pointer-events:none}
+  .eyebrow{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--slate);margin:0 0 22px;
+  }
+  .eyebrow b{color:var(--signal);font-weight:500}
+  h1{
+    font-family:var(--mono);font-weight:500;letter-spacing:-.035em;
+    font-size:clamp(2.6rem,7.2vw,4.7rem);line-height:1.02;margin:0 0 20px;
+  }
+  .lede{
+    font-size:clamp(1.05rem,2.1vw,1.32rem);line-height:1.5;max-width:41ch;
+    color:var(--graphite);margin:0 0 30px;font-weight:400;
+  }
+  .links{display:flex;flex-wrap:wrap;gap:9px;pointer-events:auto}
+  .links a{
+    font-family:var(--mono);font-size:12.5px;letter-spacing:.03em;
+    border:1px solid var(--rule);border-radius:2px;padding:8px 15px;
+    background:rgba(251,250,247,.86);color:var(--graphite);
+    transition:border-color .16s,color .16s;
+  }
+  .links a:hover{border-color:var(--plot);color:var(--plot)}
+
+  /* ---------- sections ---------- */
+  section{padding:74px 0;border-bottom:1px solid var(--rule)}
+  .sec-label{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--slate);margin:0 0 34px;
+  }
+  h2{
+    font-family:var(--mono);font-weight:500;letter-spacing:-.022em;
+    font-size:clamp(1.5rem,3.1vw,2.05rem);line-height:1.18;margin:0 0 20px;max-width:24ch;
+  }
+  .thesis p{max-width:60ch;font-size:1.08rem;margin:0 0 17px;color:#31383E}
+  .thesis p:last-child{margin-bottom:0}
+
+  /* ---------- metrics ---------- */
+  .metrics{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:42px;
+  }
+  .metric{background:var(--paper);padding:22px 20px}
+  .metric .n{
+    font-family:var(--mono);font-size:1.85rem;font-weight:500;
+    letter-spacing:-.03em;color:var(--plot);display:block;line-height:1.1;
+  }
+  .metric .k{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--slate);margin-top:8px;display:block;line-height:1.5;
+  }
+
+  /* ---------- timeline ---------- */
+  .role{
+    display:grid;grid-template-columns:158px 1fr;gap:34px;
+    padding:26px 0;border-top:1px solid var(--rule);
+  }
+  .role:first-of-type{border-top:none}
+  .when{
+    font-family:var(--mono);font-size:12px;letter-spacing:.02em;
+    color:var(--slate);padding-top:4px;line-height:1.65;
+  }
+  .when b{display:block;color:var(--signal);font-weight:500}
+  .what h3{
+    font-family:var(--sans);font-size:1.09rem;font-weight:600;
+    margin:0 0 5px;letter-spacing:-.008em;
+  }
+  .where{
+    font-family:var(--mono);font-size:12px;color:var(--slate);
+    margin:0 0 11px;letter-spacing:.02em;
+  }
+  .what p{margin:0;color:#3A4247;font-size:.985rem;max-width:62ch}
+
+  /* ---------- work cards ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+  .card{background:var(--paper);padding:26px 24px}
+  .card .tag{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--signal);margin:0 0 11px;
+  }
+  .card h3{font-size:1.02rem;font-weight:600;margin:0 0 9px;letter-spacing:-.008em}
+  .card p{margin:0;font-size:.945rem;color:#3A4247;line-height:1.58}
+
+  /* ---------- stack ---------- */
+  .stack-row{display:grid;grid-template-columns:170px 1fr;gap:28px;padding:15px 0;border-top:1px solid var(--rule)}
+  .stack-row:first-child{border-top:none}
+  .stack-row dt{font-family:var(--mono);font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--slate);padding-top:3px}
+  .stack-row dd{margin:0;font-size:.985rem;color:#31383E}
+
+  /* ---------- contact ---------- */
+  .contact{border-bottom:none;padding-bottom:88px}
+  .contact h2{max-width:20ch}
+  .contact .links{margin-top:26px}
+  footer{
+    font-family:var(--mono);font-size:11.5px;color:var(--slate);
+    letter-spacing:.04em;padding:24px 0 40px;border-top:1px solid var(--rule);
+  }
+
+  @media (max-width:720px){
+    .hero-inner{padding:64px 0 56px}
+    .role{grid-template-columns:1fr;gap:9px}
+    .when{padding-top:0}
+    .when b{display:inline;margin-right:8px}
+    .stack-row{grid-template-columns:1fr;gap:6px}
+    section{padding:54px 0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    #net{display:none}
+  }
+</style>
+<style>
+  .doc{max-width:760px;margin:0 auto;padding:52px 28px 90px}
+  .back{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;border:none}
+  .doc h1{font-size:clamp(1.9rem,4.6vw,2.7rem);margin:26px 0 8px;letter-spacing:-.03em}
+  .doc h2{font-family:var(--mono);font-weight:500;font-size:1.25rem;margin:44px 0 12px;
+          padding-top:16px;border-top:1px solid var(--rule);max-width:none}
+  .doc h3{font-family:var(--sans);font-size:1.06rem;font-weight:600;margin:28px 0 8px}
+  .doc h4,.doc h5{font-family:var(--sans);font-size:.98rem;font-weight:600;margin:22px 0 6px;color:var(--slate)}
+  .doc p,.doc li{font-size:1rem;line-height:1.68;color:#31383E}
+  .doc ul{padding-left:20px} .doc li{margin-bottom:5px}
+  .doc pre{background:var(--paper-2);border:1px solid var(--rule);padding:16px 18px;overflow-x:auto;
+           font-family:var(--mono);font-size:12.5px;line-height:1.5;border-radius:2px}
+  .doc code{font-family:var(--mono);font-size:.9em;background:var(--paper-2);padding:1px 4px;border-radius:2px}
+  .doc pre code{background:none;padding:0}
+  .doc table{border-collapse:collapse;width:100%;margin:16px 0;font-size:.94rem}
+  .doc th,.doc td{border:1px solid var(--rule);padding:8px 11px;text-align:left;vertical-align:top}
+  .doc th{background:var(--paper-2);font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase}
+  .meta{font-family:var(--mono);font-size:12px;color:var(--slate);margin:0 0 8px}
+  .note{border-left:2px solid var(--signal);padding:12px 0 12px 16px;margin:26px 0;
+        font-size:.95rem;color:var(--slate);line-height:1.6}
+</style></head><style>
+  .pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);
+        border:1px solid var(--rule);margin:30px 0 8px}
+  .stage{background:var(--paper);padding:18px 16px 20px;position:relative}
+  .stage .n{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--signal);
+            text-transform:uppercase;display:block;margin-bottom:7px}
+  .stage h4{font-family:var(--sans);font-size:1rem;font-weight:600;margin:0 0 6px}
+  .stage p{font-size:.86rem;line-height:1.5;color:var(--slate);margin:0}
+  .stage .who{font-family:var(--mono);font-size:10px;color:var(--slate);margin-top:9px;
+              display:block;letter-spacing:.06em}
+  .flow{font-family:var(--mono);font-size:11px;color:var(--slate);letter-spacing:.1em;
+        text-align:center;margin:0 0 34px}
+  .wb{border:1px solid var(--rule);margin:8px 0 0}
+  .wb-row{display:grid;grid-template-columns:1fr 210px;gap:16px;padding:13px 16px;
+          border-top:1px solid var(--rule);align-items:baseline}
+  .wb-row:first-child{border-top:none}
+  .wb-row .t{font-size:.95rem;color:#31383E}
+  .wb-row .t b{font-weight:600}
+  .wb-row .r{font-family:var(--mono);font-size:11px;color:var(--slate);text-align:right;line-height:1.7}
+  .chip{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+        padding:2px 7px;border:1px solid var(--rule);border-radius:2px;white-space:nowrap}
+  .ship{color:#1B4D7A;border-color:#1B4D7A}
+  .hold{color:var(--slate)}
+  .lane{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+        color:var(--slate);padding:16px 16px 4px;border-top:1px solid var(--rule);background:var(--paper-2)}
+  .lane:first-child{border-top:none}
+  .stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1px;
+        background:var(--rule);border:1px solid var(--rule);margin:34px 0}
+  .stat div{background:var(--paper);padding:16px}
+  .stat .v{font-family:var(--mono);font-size:1.5rem;color:var(--plot);display:block;letter-spacing:-.02em}
+  .stat .k{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+           color:var(--slate);margin-top:6px;display:block;line-height:1.5}
+  .wb-row .r a, .stage .who a{color:var(--plot);border-bottom:1px solid rgba(27,77,122,.45);
+        font-weight:500;transition:color .14s,border-color .14s,background .14s;padding-bottom:1px}
+  .wb-row .r a:hover, .stage .who a:hover{color:var(--signal);border-bottom-color:var(--signal);
+        background:rgba(139,42,107,.07)}
+  .wb-row .r a::after{content:"\2197";font-size:.78em;opacity:.55;margin-left:2px;vertical-align:super}
+  .stage .who a::after{content:"\2197";font-size:.8em;opacity:.55;margin-left:2px;vertical-align:super}
+  .reflegend{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+        color:var(--slate);margin:14px 0 0}
+  @media (max-width:720px){ .pipe{grid-template-columns:1fr} .wb-row{grid-template-columns:1fr;gap:7px}
+    .wb-row .r{text-align:left} }
+</style>
+<body><div class="doc">
+<a class="back" href="/">&larr; Eric Mastro</a>
+<p class="meta" style="margin-top:34px">Process trace &middot; Logos Storage (formerly Codex) &middot; 2024</p>
+
+<h1>Slot reservations, end-to-end</h1>
+<p>One feature, traced from the research question through to the shipped protocol and the
+specification that documents it. This is what a piece of work looks like when I own it.</p>
+
+<div class="pipe">
+  <div class="stage"><span class="n">01 &middot; Design</span>
+    <h4>Research proposal</h4>
+    <p>Why uncapped competition wastes the network, what capping reservations fixes, and an
+    adversarial analysis of six attacker classes.</p>
+    <span class="who"><a href="https://github.com/logos-storage/logos-storage-research/pull/190">research#190</a> &middot; merged</span></div>
+  <div class="stage"><span class="n">02 &middot; Plan</span>
+    <h4>Epic breakdown</h4>
+    <p>Six numbered workstreams, each split across the contracts repo and the client repo, with
+    dependencies made explicit and estimates attached.</p>
+    <span class="who"><a href="https://github.com/logos-storage/logos-storage-pm-archived/issues/45">pm#45</a> &middot; 12 Jun 2024</span></div>
+  <div class="stage"><span class="n">03 &middot; Build</span>
+    <h4>Cross-repo delivery</h4>
+    <p>Solidity contract changes and Nim client changes landed in step, each pair kept
+    independently reviewable.</p>
+    <span class="who"><a href="https://github.com/logos-storage/logos-storage-contracts-eth">contracts-eth</a> + <a href="https://github.com/logos-storage/logos-storage-nim">nim</a> &middot; Sep–Oct 2024</span></div>
+  <div class="stage"><span class="n">04 &middot; Document</span>
+    <h4>Specification</h4>
+    <p>Filling Slots section of the marketplace spec updated, so the mechanism is described
+    where implementers will look for it.</p>
+    <span class="who"><a href="https://github.com/logos-storage/logos-storage-spec/pull/9">spec#9</a> &middot; merged</span></div>
+</div>
+<p class="flow">design &rarr; plan &rarr; build &rarr; document</p>
+
+<h2>The feature work breakdown</h2>
+<p>Broken down by feature, each subtask affects a different repo. Note that some features were <em>not</em> shipped: the expanding window and the
+dispersal parameter in particular. These were seen as necessary for mainnet, but not showstoppers to deliver the slot reservations functionality for testnet.</p>
+
+<div class="wb">
+  <div class="lane">1 &middot; Reserve slot</div>
+  <div class="wb-row"><div class="t"><b>Allow slots to be reserved</b><br>Allows reservation of slots, without an implementation of the expanding window.</div>
+    <div class="r"><span class="chip ship">shipped</span><br><a href="https://github.com/logos-storage/logos-storage-contracts-eth/issues/175">contracts-eth#175</a></div></div>
+  <div class="wb-row"><div class="t"><b>Wire up <code>reserveSlot</code> and <code>canReserveSlot</code></b><br>Client calls added but not yet invoked, to avoid prevention of slot filling.</div>
+    <div class="r"><span class="chip ship">shipped</span><br><a href="https://github.com/logos-storage/logos-storage-nim/issues/898">nim#898</a></div></div>
+
+  <div class="lane">2 &middot; Dispersal parameter</div>
+  <div class="wb-row"><div class="t"><b>Client-tunable dispersal rate</b><br>Sets the rate of dispersal, a mechanism to elect what percentage of addresses are eligible in the expanding window at the halfway point to contract expiry.</div>
+    <div class="r"><span class="chip hold">on hold</span><br><a href="https://github.com/logos-storage/logos-storage-contracts-eth/issues/115">contracts-eth#115</a> · <a href="https://github.com/logos-storage/logos-storage-nim/issues/909">nim#909</a></div></div>
+  <div class="wb-row"><div class="t"><b>Add <code>expansionRate</code> parameter to support contract changes</b><br>This parameter is part of the <code>StorageRequest</code> and needs to be supported in the Codex client.</div>
+    <div class="r"><span class="chip hold">on hold</span><br><a href="https://github.com/logos-storage/logos-storage-contracts-eth/issues/115">contracts-eth#115</a> · <a href="https://github.com/logos-storage/logos-storage-nim/issues/909">nim#909</a></div></div>
+
+  <div class="lane">3 &middot; Sale state machine</div>
+  <div class="wb-row"><div class="t"><b>Add <code>SaleReserving</code> state</b><br>Add a state, <code>SaleReserving</code> to the sales state machine that reserves a slot before attempting to fill the slot. This should be the first state after <code>SalePreparing</code></div>
+    <div class="r"><span class="chip ship">shipped</span><br><a href="https://github.com/logos-storage/logos-storage-nim/issues/916">nim#916</a></div></div>
+  <div class="wb-row"><div class="t"><b>Slot queue <code>seen</code> flag refactor</b><br>Split <code>seenNoAvailability</code> from <code>seenNotEligible</code> so only one pauses the queue</div>
+    <div class="r"><span class="chip hold">on hold</span><br><a href="https://github.com/logos-storage/logos-storage-nim">nim</a></div></div>
+
+  <div class="lane">4 &middot; Reservations-full event</div>
+  <div class="wb-row"><div class="t"><b>Emit <code>SlotReservationsFull</code> event</b><br>When the number of reservations for a slot reaches <code>config._MAX_RESERVATIONS</code>, a <code>SlotReservationsFull</code> event is emitted with the <code>RequestId</code> and <code>slotIndex</code> of the slot.</div>
+    <div class="r"><span class="chip ship">shipped</span><br><a href="https://github.com/logos-storage/logos-storage-contracts-eth/issues/182">contracts-eth#182</a></div></div>
+  <div class="wb-row"><div class="t"><b>Consume the event client-side</b>Supports the <code>SlotRervationsFull</code> contract event. Subscribes to the <code>SlotReservationsFull</code> event in the sales module. When emitted, the slot is removed from the slot queue.</div>
+    <div class="r"><span class="chip ship">shipped</span><br><a href="https://github.com/logos-storage/logos-storage-nim/issues/931">nim#931</a></div></div>
+
+  <div class="lane">5 &middot; Expanding window</div>
+  <div class="wb-row"><div class="t"><b>Kademlia-distance eligibility, widening over time</b><br>Designed and <a href ="https://github.com/logos-storage/logos-storage-research/blob/master/design/slot-reservations.md#expanding-window-mechanism">specified</a>; implementation held.</div>
+    <div class="r"><span class="chip hold">on hold</span><br><a href="https://github.com/logos-storage/logos-storage-contracts-eth/issues/116">contracts-eth#116</a></div></div>
+
+  <div class="lane">6 &middot; Enforcement</div>
+  <div class="wb-row"><div class="t"><b>Add expanding window gate logic</b><br>Flesh out <code>reserveSlot</code> logic for expanding window</div>
+    <div class="r"><span class="chip hold">on hold</span></div></div>
+  <div class="wb-row"><div class="t"><b>Require a reservation before filling</b><br>Revert if slot is not reserved when attempting to fill it. Check if <code>_reservations</code> contains the sender address for the slot.</div>
+    <div class="r"><span class="chip ship">shipped</span><br><a href="https://github.com/logos-storage/logos-storage-contracts-eth/issues/184">contracts-eth#184</a></div></div>
+  <div class="wb-row"><div class="t"><b>Client honours enforcement</b><br>Add support for enforcement of slot reservations updates by updating the tests to reserve slots before filling them.</div>
+    <div class="r"><span class="chip ship">shipped</span><br><a href="https://github.com/logos-storage/logos-storage-nim/issues/933">nim#933</a></div></div>
+
+  <div class="lane">Specification</div>
+  <div class="wb-row"><div class="t"><b>Update Marketplace spec</b><br>Add slots reservations specification to the <a href="https://lip.logos.co/storage/deprecated/codex-marketplace.html#filling-slots">Marketplace spec</a>.</div>
+    <div class="r"><span class="chip ship">shipped</span><br><a href="https://github.com/logos-storage/logos-storage-spec/pull/9">spec#9</a></div></div>
+</div>
+
+<div class="stat">
+  <div><span class="v">4</span><span class="k">Repositories<br>coordinated</span></div>
+  <div><span class="v">6</span><span class="k">Workstreams<br>in the epic</span></div>
+  <div><span class="v">8/11</span><span class="k">Items shipped,<br>3 held deliberately</span></div>
+  <div><span class="v">~4mo</span><span class="k">Design merged<br>to enforcement live</span></div>
+</div>
+
+<h2>What this is meant to show</h2>
+<p><strong>The public design was created first.</strong> The mechanisms were discussed and ultimately a final design was distilled from these discussions. It's always easier to modify designs than implementation. Ideas that were rejected were documented alongside the final design.</p>
+<p><strong>Clearly planned execution.</strong> Implementation was split into workstreams with contract and client work further split into distinct tasks. This type of planning is transparent, easier to delegate and easily planned for, while being able to easily identify features that can be put on hold to make a deadline. </p>
+<p><strong>Scope was reduced when needed.</strong> Three of eleven items were marked on hold, with the estimate
+revised once the reservation work was done. The expanding window is a complex feature to implement in a contract, and it solves problems that exist only at scale, so putting it on hold allowed us to ship the testnet first, with work continuing on this feature later.</p>
+<p><strong>Documentation, not forgotten.</strong> The <a href="https://lip.logos.co/storage/deprecated/codex-marketplace.html#filling-slots">public marketplace spec</a> was updated with the design details of the slot reservations, so that other contributors and future team members can reference it.</p>
+
+<div class="note">Epic <a href="https://github.com/logos-storage/logos-storage-pm-archived/issues/45">logos-storage-pm-archived#45</a>,
+opened 12 June 2024 under the Marketplace Productionizing milestone. Design published as
+<a href="https://github.com/logos-storage/logos-storage-research/pull/190">research#190</a>. The reservation mechanism is in the protocol; the expanding window is not.</div>
+
+<p style="margin-top:36px"><a class="back" href="/">&larr; Back</a> &nbsp; <a class="back" href="/recoverability-analysis">Recoverability analysis &rarr;</a> &nbsp;
+<a class="back" href="/slot-reservations">Read the design &rarr;</a> &nbsp;
+<a class="back" href="/marketplace-state-restoration">Gas analysis &rarr;</a></p>
+</div></body></html>

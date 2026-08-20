@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231B4D7A%27/%3E%3Ctext x=%2732%27 y=%2744%27 font-family=%27ui-monospace,monospace%27 font-size=%2734%27 font-weight=%27600%27 fill=%27%23FBFAF7%27 text-anchor=%27middle%27%3E%7B%7D%3C/text%3E%3C/svg%3E">
+<title>Eric Mastro, Distributed Systems Engineer</title>
+<meta name="description" content="Protocol internals, on-chain markets, and the tooling in between. Nineteen years in systems software, most recently engineering lead for Logos Storage.">
+<meta property="og:title" content="Eric Mastro, Distributed Systems Engineer">
+<meta property="og:description" content="Protocol internals, on-chain markets, and the tooling in between. Nineteen years in systems software.">
+<meta property="og:type" content="profile">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBFAF7;
+    --paper-2:#F2F0EA;
+    --graphite:#21262B;
+    --slate:#5C666E;
+    --rule:#DDD9D0;
+    --plot:#1B4D7A;
+    --signal:#8B2A6B;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+    --wrap:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--graphite);
+    font-family:var(--sans);font-size:16.5px;line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--wrap);margin:0 auto;padding:0 28px}
+  a{color:var(--plot);text-decoration:none;border-bottom:1px solid rgba(27,77,122,.3)}
+  a:hover{border-bottom-color:var(--plot)}
+  a:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:2px}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;border-bottom:1px solid var(--rule);overflow:hidden}
+  #net{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hero-inner{position:relative;padding:96px 0 84px;pointer-events:none}
+  .eyebrow{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--slate);margin:0 0 22px;
+  }
+  .eyebrow b{color:var(--signal);font-weight:500}
+  h1{
+    font-family:var(--mono);font-weight:500;letter-spacing:-.035em;
+    font-size:clamp(2.6rem,7.2vw,4.7rem);line-height:1.02;margin:0 0 20px;
+  }
+  .lede{
+    font-size:clamp(1.05rem,2.1vw,1.32rem);line-height:1.5;max-width:41ch;
+    color:var(--graphite);margin:0 0 30px;font-weight:400;
+  }
+  .links{display:flex;flex-wrap:wrap;gap:9px;pointer-events:auto}
+  .links a{
+    font-family:var(--mono);font-size:12.5px;letter-spacing:.03em;
+    border:1px solid var(--rule);border-radius:2px;padding:8px 15px;
+    background:rgba(251,250,247,.86);color:var(--graphite);
+    transition:border-color .16s,color .16s;
+  }
+  .links a:hover{border-color:var(--plot);color:var(--plot)}
+
+  /* ---------- sections ---------- */
+  section{padding:74px 0;border-bottom:1px solid var(--rule)}
+  .sec-label{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--slate);margin:0 0 34px;
+  }
+  h2{
+    font-family:var(--mono);font-weight:500;letter-spacing:-.022em;
+    font-size:clamp(1.5rem,3.1vw,2.05rem);line-height:1.18;margin:0 0 20px;max-width:24ch;
+  }
+  .thesis p{max-width:60ch;font-size:1.08rem;margin:0 0 17px;color:#31383E}
+  .thesis p:last-child{margin-bottom:0}
+
+  /* ---------- metrics ---------- */
+  .metrics{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:42px;
+  }
+  .metric{background:var(--paper);padding:22px 20px}
+  .metric .n{
+    font-family:var(--mono);font-size:1.85rem;font-weight:500;
+    letter-spacing:-.03em;color:var(--plot);display:block;line-height:1.1;
+  }
+  .metric .k{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--slate);margin-top:8px;display:block;line-height:1.5;
+  }
+
+  /* ---------- timeline ---------- */
+  .role{
+    display:grid;grid-template-columns:158px 1fr;gap:34px;
+    padding:26px 0;border-top:1px solid var(--rule);
+  }
+  .role:first-of-type{border-top:none}
+  .when{
+    font-family:var(--mono);font-size:12px;letter-spacing:.02em;
+    color:var(--slate);padding-top:4px;line-height:1.65;
+  }
+  .when b{display:block;color:var(--signal);font-weight:500}
+  .what h3{
+    font-family:var(--sans);font-size:1.09rem;font-weight:600;
+    margin:0 0 5px;letter-spacing:-.008em;
+  }
+  .where{
+    font-family:var(--mono);font-size:12px;color:var(--slate);
+    margin:0 0 11px;letter-spacing:.02em;
+  }
+  .what p{margin:0;color:#3A4247;font-size:.985rem;max-width:62ch}
+
+  /* ---------- work cards ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+  .card{background:var(--paper);padding:26px 24px}
+  .card .tag{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--signal);margin:0 0 11px;
+  }
+  .card h3{font-size:1.02rem;font-weight:600;margin:0 0 9px;letter-spacing:-.008em}
+  .card p{margin:0;font-size:.945rem;color:#3A4247;line-height:1.58}
+
+  /* ---------- stack ---------- */
+  .stack-row{display:grid;grid-template-columns:170px 1fr;gap:28px;padding:15px 0;border-top:1px solid var(--rule)}
+  .stack-row:first-child{border-top:none}
+  .stack-row dt{font-family:var(--mono);font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--slate);padding-top:3px}
+  .stack-row dd{margin:0;font-size:.985rem;color:#31383E}
+
+  /* ---------- contact ---------- */
+  .contact{border-bottom:none;padding-bottom:88px}
+  .contact h2{max-width:20ch}
+  .contact .links{margin-top:26px}
+  footer{
+    font-family:var(--mono);font-size:11.5px;color:var(--slate);
+    letter-spacing:.04em;padding:24px 0 40px;border-top:1px solid var(--rule);
+  }
+
+  @media (max-width:720px){
+    .hero-inner{padding:64px 0 56px}
+    .role{grid-template-columns:1fr;gap:9px}
+    .when{padding-top:0}
+    .when b{display:inline;margin-right:8px}
+    .stack-row{grid-template-columns:1fr;gap:6px}
+    section{padding:54px 0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    #net{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <canvas id="net" aria-hidden="true"></canvas>
+  <div class="wrap hero-inner">
+    <p class="eyebrow">Greater Sydney, Australia &nbsp;·&nbsp; <b>Open to remote</b></p>
+    <h1>Eric Mastro</h1>
+    <p class="lede">Protocol internals, on-chain markets, and the tooling in between. Nineteen years, from enterprise .NET to peer-to-peer storage. Drawn to problems that make the world a better place, and to building tools that developers love to use.</p>
+    <nav class="links">
+      <a href="#work">Work</a>
+      <a href="https://github.com/emizzle">GitHub</a>
+      <a href="https://linkedin.com/in/ericmastro">LinkedIn</a>
+      <a href="mailto:hireme@egonat.me">Email</a>
+      <a href="/Eric_Mastro_Resume.pdf">Résumé&nbsp;↓</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="thesis">
+  <div class="wrap">
+    <p class="sec-label">Until September 2026</p>
+    <h2>Engineering lead, Logos Storage.</h2>
+    <p>A privacy-preserving decentralised storage protocol serving a community of about 7,500. Led the marketplace team through design, threat modelling, implementation and a public testnet, then set technical direction across protocol, contracts, interop and documentation.</p>
+    <p>Before that: nineteen years of systems software. Eight in peer-to-peer networking and Ethereum infrastructure at Status and Codex; eleven before that building enterprise platforms in the .NET world. Production code in Nim, Solidity, TypeScript, Go, C, and C++, and still more pull requests reviewed than opened.</p>
+
+    <div class="metrics">
+      <div class="metric"><span class="n">796</span><span class="k">Pull requests<br>authored since 2018</span></div>
+      <div class="metric"><span class="n">934</span><span class="k">Pull requests<br>reviewed since 2018</span></div>
+      <div class="metric"><span class="n">1,639</span><span class="k">Commits<br>since 2018</span></div>
+      <div class="metric"><span class="n">19</span><span class="k">Years<br>writing software</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="work">
+  <div class="wrap">
+    <p class="sec-label">Selected work</p>
+    <div class="cards">
+      <div class="card">
+        <p class="tag">How I work</p>
+        <h3>One feature, end-to-end</h3>
+        <p>From research proposal, through to design, epic breakdown, cross-repository implementation, testing, and specification. <a href="/how-i-work">See an example &rarr;</a></p>
+      </div>
+      <div class="card">
+        <p class="tag">Mechanism design</p>
+        <h3>Slot reservations</h3>
+        <p>Uncapped competition meant many providers downloading the same content for a single payout, and a lucrative request could DDoS the client that posted it. Capping reservations fixed both. Shipped, with an adversarial analysis covering six named attacker classes and a written record of every mechanism rejected along the way. <a href="/slot-reservations">Read the design &rarr;</a></p>
+      </div>
+      <div class="card">
+        <p class="tag">Protocol design</p>
+        <h3>On-chain marketplace</h3>
+        <p>A storage market where strangers pay strangers to keep data alive: threat modelling and mitigation, incentive and collateral design, then planning, implementation, testing and exploit preparedness. Includes the <a href="https://lip.logos.co/storage/deprecated/codex-marketplace.html">published protocol specification</a> and a <a href="https://github.com/logos-storage/logos-storage-research">public research repository</a>. Also: a <a href="/recoverability-analysis">per-state recoverability analysis</a> giving every state in the sales machine a defined outcome under crash, power loss and asynchronous cancellation.</p>
+      </div>
+      <div class="card">
+        <p class="tag">Gas economics</p>
+        <h3>10&times; cheaper state restoration</h3>
+        <p>Two competing on-chain designs, built and benchmarked rather than argued about. Worst-case slot-freeing fell from 3,115,596 to 302,584 gas. The report priced the difference in euros at live rates and ended the debate. <a href="/marketplace-state-restoration">Read the analysis &rarr;</a></p>
+      </div>
+      <div class="card">
+        <p class="tag">Project leadership</p>
+        <h3>Marketplace to Logos Storage</h3>
+        <p>Twelve epics breaking a roadmap into workstreams across two repositories. A year of weekly programme updates published to the <a href="https://github.com/logos-co/roadmap">public roadmap</a>, a delivery board run from planning through launch, and a public testnet that reached roughly a hundred participants.</p>
+      </div>
+      <div class="card">
+        <p class="tag">Developer tooling</p>
+        <h3>Tools other engineers live in</h3>
+        <p><a href="https://github.com/embarklabs/embark">Embark</a>, an Ethereum development framework: 263 pull requests authored, 378 reviewed, and a plugin ecosystem spanning security analysis, Plasma chains and zkSNARKs. <a href="https://github.com/emizzle/nimv"><code>nimv</code></a>, a Nim toolchain manager that stops you installing a binary your OS cannot run, shipped through Homebrew, Chocolatey and apt. <a href="https://github.com/logos-storage/nim-serde"><code>nim-serde</code></a> and <a href="https://github.com/logos-storage/nim-ethers"><code>nim-ethers</code></a>, the serialisation and contract-interaction libraries the whole stack is built on.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="sec-label">Track</p>
+
+    <div class="role">
+      <p class="when"><b>2025–2026</b>Logos Storage</p>
+      <div class="what">
+        <h3>Engineering Lead</h3>
+        <p class="where">2 direct reports, 3 indirect · Remote<br>202 commits · 95 PRs authored · 75 reviewed</p>
+        <p>Technical direction and delivery for the storage protocol. Led the strategic pivot from an on-chain marketplace to gossip-based altruistic replication, ran cross-organisation requirements gathering with the Waku and Status Desktop teams, and acted as temporary lead for the whole team through the Codex to Logos Storage transition.</p>
+      </div>
+    </div>
+
+    <div class="role">
+      <p class="when"><b>2024–2025</b>Codex</p>
+      <div class="what">
+        <h3>Marketplace Team Lead</h3>
+        <p class="where">4 direct reports · Remote<br>197 commits · 118 PRs authored · 186 reviewed</p>
+        <p>Led the team building the on-chain storage market: requests, slot filling, zero-knowledge proof verification, validators, slashing and repair. Set the half-year engineering programme against measurable reliability, gas and latency targets, and ran the Arbitrum L2 evaluation.</p>
+      </div>
+    </div>
+
+    <div class="role">
+      <p class="when"><b>2021–2024</b>Codex</p>
+      <div class="what">
+        <h3>Senior Distributed Networking Engineer</h3>
+        <p class="where">Remote<br>314 commits · 147 PRs authored · 147 reviewed</p>
+        <p>Core contributor to the protocol node in Nim: peer discovery, content-addressed block storage, erasure coding and storage proofs. Adapted discv5 into the project's DHT, and authored <a href="https://github.com/logos-storage/nim-ethers"><code>nim-ethers</code></a> and <a href="https://github.com/logos-storage/nim-serde"><code>nim-serde</code></a>.</p>
+      </div>
+    </div>
+
+    <div class="role">
+      <p class="when"><b>2020–2021</b>Status</p>
+      <div class="what">
+        <h3>Senior Qt and Nim Engineer</h3>
+        <p class="where">Remote<br>188 commits · 176 PRs authored · 144 reviewed</p>
+        <p>Desktop client features in Nim, C++, Qt and QML across <a href="https://github.com/status-im/status-desktop"><code>status-app</code></a>, <a href="https://github.com/status-im/status-go"><code>status-go</code></a> and <a href="https://github.com/status-im/StatusQ"><code>StatusQ</code></a>: communities, channels, wallet history, ENS validation and a paid sticker market. Also work on <code>DOtherSide</code> and <code>nimqml</code>, the Nim to C++ FFI bridge letting a Qt application be driven by a Nim codebase, and on <code>nim-sqlcipher</code>, the encrypted store holding user data at rest.</p>
+      </div>
+    </div>
+
+    <div class="role">
+      <p class="when"><b>2018–2020</b>Status</p>
+      <div class="what">
+        <h3>Senior JavaScript / TypeScript Engineer, Embark</h3>
+        <p class="where">Remote<br>738 commits · 260 PRs authored · 382 reviewed</p>
+        <p>Core contributor to the Embark developer framework and its plugin ecosystem. Authored <code>swarm-api</code>, and presented the framework at conferences across four continents.</p>
+      </div>
+    </div>
+
+    <div class="role">
+      <p class="when"><b>2007–2018</b>Sydney &amp; USA</p>
+      <div class="what">
+        <h3>Senior .NET Full Stack Developer</h3>
+        <p class="where">Interesting · Switch I.T. · Webcoda · RedPrairie</p>
+        <p>Eleven years of enterprise platform work: technical lead on award-winning CMS builds, continuous delivery pipelines on Jenkins and Azure, and supply-chain warehouse software in C and .NET.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="sec-label">Stack</p>
+    <dl style="margin:0">
+      <div class="stack-row"><dt>Languages</dt><dd>Nim · TypeScript · Go · C · C++ · Solidity · C#/.NET · Python</dd></div>
+      <div class="stack-row"><dt>Distributed</dt><dd>libp2p · discv5 · Kademlia DHT · gossipsub · erasure coding · content addressing · NAT traversal</dd></div>
+      <div class="stack-row"><dt>Blockchain</dt><dd>Ethereum L1 &amp; L2 (Arbitrum, Linea) · contract design &amp; gas optimisation · zero-knowledge storage proofs · mechanism design</dd></div>
+      <div class="stack-row"><dt>Interop</dt><dd>C FFI · Go CGO · Qt/QML</dd></div>
+      <div class="stack-row"><dt>Platform</dt><dd>Docker · Kubernetes · Nix · GitHub Actions · Linux · CI/CD design</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="contact">
+  <div class="wrap">
+    <p class="sec-label">Contact</p>
+    <h2>Open to staff-level and engineering leadership roles.</h2>
+    <p class="thesis" style="max-width:56ch;color:#31383E">Remote preferred. Happy to talk about protocol work, systems infrastructure, developer platform, or anything peer-to-peer.</p>
+    <nav class="links">
+      <a href="mailto:hireme@egonat.me">hireme@egonat.me</a>
+      <a href="https://github.com/emizzle">github.com/emizzle</a>
+      <a href="https://linkedin.com/in/ericmastro">linkedin.com/in/ericmastro</a>
+    </nav>
+  </div>
+</section>
+
+<footer><div class="wrap">Eric Mastro · Greater Sydney, Australia</div></footer>
+</main>
+
+<script>
+(function(){
+  var c = document.getElementById('net');
+  if (!c || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var ctx = c.getContext('2d'), nodes = [], target = null, W=0, H=0, dpr=1;
+  var PLOT = '#1B4D7A', SIGNAL = '#8B2A6B', RULE = '#DDD9D0';
+
+  function seed(){
+    var host = c.parentElement.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = host.width; H = host.height;
+    c.width = W*dpr; c.height = H*dpr;
+    c.style.width = W+'px'; c.style.height = H+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    // nodes cluster to the right so they never fight the headline
+    var n = W < 700 ? 34 : 62;
+    nodes = [];
+    for (var i=0;i<n;i++){
+      nodes.push({
+        x: W*0.30 + Math.random()*W*0.72,
+        y: Math.random()*H,
+        r: 1.35 + Math.random()*1.5,
+        vx:(Math.random()-.5)*0.09,
+        vy:(Math.random()-.5)*0.09,
+        lit: 0
+      });
+    }
+    target = { x: W*0.76, y: H*0.46 };
+  }
+
+  var t = 0, PERIOD = 460;
+  function frame(){
+    t = (t+1) % PERIOD;
+    // window expands over the first 78% of the cycle, then resets, the mechanism itself
+    var prog = Math.min(t/(PERIOD*0.78), 1);
+    var eased = 1 - Math.pow(1-prog, 2.4);
+    var maxR = Math.max(W,H)*0.62;
+    var radius = eased*maxR;
+    var fade = t > PERIOD*0.88 ? 1-((t-PERIOD*0.88)/(PERIOD*0.12)) : 1;
+
+    ctx.clearRect(0,0,W,H);
+
+    // concentric reference rings
+    ctx.globalAlpha = 0.5*fade;
+    ctx.strokeStyle = RULE; ctx.lineWidth = 1;
+    for (var k=1;k<=4;k++){
+      ctx.beginPath();
+      ctx.arc(target.x, target.y, maxR*(k/4.6), 0, Math.PI*2);
+      ctx.stroke();
+    }
+
+    // the expanding eligibility window
+    ctx.globalAlpha = 0.85*fade;
+    ctx.strokeStyle = SIGNAL; ctx.lineWidth = 1.25;
+    ctx.beginPath(); ctx.arc(target.x, target.y, radius, 0, Math.PI*2); ctx.stroke();
+
+    // nodes
+    for (var i=0;i<nodes.length;i++){
+      var p = nodes[i];
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < W*0.24 || p.x > W*1.02) p.vx *= -1;
+      if (p.y < 0 || p.y > H) p.vy *= -1;
+
+      var d = Math.hypot(p.x-target.x, p.y-target.y);
+      var inside = d < radius;
+      p.lit += ((inside?1:0) - p.lit) * 0.07;
+
+      if (p.lit > 0.05){
+        ctx.globalAlpha = 0.16*p.lit*fade;
+        ctx.strokeStyle = SIGNAL; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(target.x,target.y); ctx.lineTo(p.x,p.y); ctx.stroke();
+      }
+      ctx.globalAlpha = (0.30 + 0.55*p.lit)*fade;
+      ctx.fillStyle = p.lit > 0.4 ? SIGNAL : PLOT;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r + p.lit*1.1,0,Math.PI*2); ctx.fill();
+    }
+
+    // the slot itself
+    ctx.globalAlpha = fade;
+    ctx.fillStyle = SIGNAL;
+    ctx.beginPath(); ctx.arc(target.x,target.y,3.2,0,Math.PI*2); ctx.fill();
+
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  }
+
+  seed();
+  var rt; window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(seed, 180); });
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

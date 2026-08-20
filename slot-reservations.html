@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231B4D7A%27/%3E%3Ctext x=%2732%27 y=%2744%27 font-family=%27ui-monospace,monospace%27 font-size=%2734%27 font-weight=%27600%27 fill=%27%23FBFAF7%27 text-anchor=%27middle%27%3E%7B%7D%3C/text%3E%3C/svg%3E">
+<title>Slot reservations &middot; Eric Mastro</title>
+<meta name="description" content="Design for slot reservations in a decentralised storage marketplace, including the expanding window mechanism and an adversarial analysis of six attacker classes.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBFAF7;
+    --paper-2:#F2F0EA;
+    --graphite:#21262B;
+    --slate:#5C666E;
+    --rule:#DDD9D0;
+    --plot:#1B4D7A;
+    --signal:#8B2A6B;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+    --wrap:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--graphite);
+    font-family:var(--sans);font-size:16.5px;line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--wrap);margin:0 auto;padding:0 28px}
+  a{color:var(--plot);text-decoration:none;border-bottom:1px solid rgba(27,77,122,.3)}
+  a:hover{border-bottom-color:var(--plot)}
+  a:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:2px}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;border-bottom:1px solid var(--rule);overflow:hidden}
+  #net{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hero-inner{position:relative;padding:96px 0 84px;pointer-events:none}
+  .eyebrow{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--slate);margin:0 0 22px;
+  }
+  .eyebrow b{color:var(--signal);font-weight:500}
+  h1{
+    font-family:var(--mono);font-weight:500;letter-spacing:-.035em;
+    font-size:clamp(2.6rem,7.2vw,4.7rem);line-height:1.02;margin:0 0 20px;
+  }
+  .lede{
+    font-size:clamp(1.05rem,2.1vw,1.32rem);line-height:1.5;max-width:41ch;
+    color:var(--graphite);margin:0 0 30px;font-weight:400;
+  }
+  .links{display:flex;flex-wrap:wrap;gap:9px;pointer-events:auto}
+  .links a{
+    font-family:var(--mono);font-size:12.5px;letter-spacing:.03em;
+    border:1px solid var(--rule);border-radius:2px;padding:8px 15px;
+    background:rgba(251,250,247,.86);color:var(--graphite);
+    transition:border-color .16s,color .16s;
+  }
+  .links a:hover{border-color:var(--plot);color:var(--plot)}
+
+  /* ---------- sections ---------- */
+  section{padding:74px 0;border-bottom:1px solid var(--rule)}
+  .sec-label{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--slate);margin:0 0 34px;
+  }
+  h2{
+    font-family:var(--mono);font-weight:500;letter-spacing:-.022em;
+    font-size:clamp(1.5rem,3.1vw,2.05rem);line-height:1.18;margin:0 0 20px;max-width:24ch;
+  }
+  .thesis p{max-width:60ch;font-size:1.08rem;margin:0 0 17px;color:#31383E}
+  .thesis p:last-child{margin-bottom:0}
+
+  /* ---------- metrics ---------- */
+  .metrics{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:42px;
+  }
+  .metric{background:var(--paper);padding:22px 20px}
+  .metric .n{
+    font-family:var(--mono);font-size:1.85rem;font-weight:500;
+    letter-spacing:-.03em;color:var(--plot);display:block;line-height:1.1;
+  }
+  .metric .k{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--slate);margin-top:8px;display:block;line-height:1.5;
+  }
+
+  /* ---------- timeline ---------- */
+  .role{
+    display:grid;grid-template-columns:158px 1fr;gap:34px;
+    padding:26px 0;border-top:1px solid var(--rule);
+  }
+  .role:first-of-type{border-top:none}
+  .when{
+    font-family:var(--mono);font-size:12px;letter-spacing:.02em;
+    color:var(--slate);padding-top:4px;line-height:1.65;
+  }
+  .when b{display:block;color:var(--signal);font-weight:500}
+  .what h3{
+    font-family:var(--sans);font-size:1.09rem;font-weight:600;
+    margin:0 0 5px;letter-spacing:-.008em;
+  }
+  .where{
+    font-family:var(--mono);font-size:12px;color:var(--slate);
+    margin:0 0 11px;letter-spacing:.02em;
+  }
+  .what p{margin:0;color:#3A4247;font-size:.985rem;max-width:62ch}
+
+  /* ---------- work cards ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+  .card{background:var(--paper);padding:26px 24px}
+  .card .tag{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--signal);margin:0 0 11px;
+  }
+  .card h3{font-size:1.02rem;font-weight:600;margin:0 0 9px;letter-spacing:-.008em}
+  .card p{margin:0;font-size:.945rem;color:#3A4247;line-height:1.58}
+
+  /* ---------- stack ---------- */
+  .stack-row{display:grid;grid-template-columns:170px 1fr;gap:28px;padding:15px 0;border-top:1px solid var(--rule)}
+  .stack-row:first-child{border-top:none}
+  .stack-row dt{font-family:var(--mono);font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--slate);padding-top:3px}
+  .stack-row dd{margin:0;font-size:.985rem;color:#31383E}
+
+  /* ---------- contact ---------- */
+  .contact{border-bottom:none;padding-bottom:88px}
+  .contact h2{max-width:20ch}
+  .contact .links{margin-top:26px}
+  footer{
+    font-family:var(--mono);font-size:11.5px;color:var(--slate);
+    letter-spacing:.04em;padding:24px 0 40px;border-top:1px solid var(--rule);
+  }
+
+  @media (max-width:720px){
+    .hero-inner{padding:64px 0 56px}
+    .role{grid-template-columns:1fr;gap:9px}
+    .when{padding-top:0}
+    .when b{display:inline;margin-right:8px}
+    .stack-row{grid-template-columns:1fr;gap:6px}
+    section{padding:54px 0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    #net{display:none}
+  }
+</style>
+<style>
+  .doc{max-width:760px;margin:0 auto;padding:52px 28px 90px}
+  .back{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;border:none}
+  .doc h1{font-size:clamp(1.9rem,4.6vw,2.7rem);margin:26px 0 8px;letter-spacing:-.03em}
+  .doc h2{font-family:var(--mono);font-weight:500;font-size:1.25rem;margin:44px 0 12px;
+          padding-top:16px;border-top:1px solid var(--rule);max-width:none}
+  .doc h3{font-family:var(--sans);font-size:1.06rem;font-weight:600;margin:28px 0 8px}
+  .doc h4,.doc h5{font-family:var(--sans);font-size:.98rem;font-weight:600;margin:22px 0 6px;color:var(--slate)}
+  .doc p,.doc li{font-size:1rem;line-height:1.68;color:#31383E}
+  .doc ul{padding-left:20px} .doc li{margin-bottom:5px}
+  .doc pre{background:var(--paper-2);border:1px solid var(--rule);padding:16px 18px;overflow-x:auto;
+           font-family:var(--mono);font-size:12.5px;line-height:1.5;border-radius:2px}
+  .doc code{font-family:var(--mono);font-size:.9em;background:var(--paper-2);padding:1px 4px;border-radius:2px}
+  .doc pre code{background:none;padding:0}
+  .doc table{border-collapse:collapse;width:100%;margin:16px 0;font-size:.94rem}
+  .doc th,.doc td{border:1px solid var(--rule);padding:8px 11px;text-align:left;vertical-align:top}
+  .doc th{background:var(--paper-2);font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase}
+  .meta{font-family:var(--mono);font-size:12px;color:var(--slate);margin:0 0 8px}
+  .note{border-left:2px solid var(--signal);padding:12px 0 12px 16px;margin:26px 0;
+        font-size:.95rem;color:var(--slate);line-height:1.6}
+</style><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[
+    {left:'$$',right:'$$',display:true},
+    {left:'$',right:'$',display:false}],throwOnError:false});"></script>
+</head>
+<body><div class="doc">
+<a class="back" href="/">&larr; Eric Mastro</a>
+<p class="meta" style="margin-top:34px">Protocol design &middot; Logos Storage (formerly Codex)</p>
+<h1>Slot reservations</h1>
+
+<p>Competition between storage providers (SPs) to fill slots has some advantages, such as providing an incentive for SPs to become proficient in downloading content and generating proofs. It also has some drawbacks, for instance it can lead to network inefficiencies because multiple SPs do the work of downloading and proving, while only one SP is rewarded for it. These inefficiencies lead to higher costs for SPs, which leads to an overall increase in the price of storage on the network. It can also lead to clients inadvertently inviting too much network traffic to themselves. Should they for instance post a very lucrative storage request, then this invites a lot of SPs to start downloading the content from the client simultaneously, not unlike a DDOS attack.</p>
+
+<p>Slot reservations are a means to avoid these inefficiencies by only allowing SPs who have secured a slot reservation to fill the slot. Furthermore, slots can only be reserved by eligible SPs, governed by a window of eligible addresses that starts small and grows larger over time, eventually encompassing the entire address space on the network.</p>
+
+<h2>Proposed solution: slot reservations</h2>
+
+<p>Before downloading the content associated with a slot, a limited number of SPs can reserve the slot. Only SPs that have reserved the slot can fill the slot. After the SP downloads the content and calculates a proof, it can move the slot from its reserved state into the filled state by providing collateral and the storage proof. Then it begins to periodically provide storage proofs and accrue payments for the slot.</p>
+
+<pre><code>         reserve         proof &amp; collateral
+            |                  |
+            v                  v
+            ---------------------------------------------
+     slot:  |/ / / / / / / / / |/////////////////////////
+            ---------------------------------------------
+            |                  |
+            v                  v
+          slot                slot
+         reserved            filled
+
+
+            ---------------- time ----------------&gt;</code></pre>
+
+<p>There is an initial race for eligible SPs who are first to secure a reservation, then a second race amongst the SPs with a reservation to fill the slot (with collateral and the generated proof). However, not all SPs in the network can reserve a slot initially: the <a href="https://github.com/status-im/codex-research/blob/ad41558900ff8be91811aa5de355148d8d78404f/design/marketplace.md#dispersal">expanding window mechanism</a> dictates which SPs are eligible to reserve the slot.</p>
+
+<h3>Expanding window mechanism</h3>
+
+<p>The expanding window mechanism prevents node and network overload once a slot becomes available to be filled (or repaired) by allowing only a very small number of SP addresses to fill/repair the slot at the start. Over time, the number of eligible SP addresses increases, until eventually all SP addresses in the network are eligible.</p>
+
+<p>The expanding window mechanism starts off with a random source address, defined as $hash(block hash, request id, slot index, reservationindex)$, with a unique source address for each reservation of each slot. The distance between each SP address and the source address can be defined as $XOR(A, A_0)$ (kademlia distance). Once the allowed distance is greater than SP&#x27;s distance, the SP is considered eligible to reserve a slot. The allowed distance for eligible addresses over time $t_i$ can be <a href="https://hackmd.io/@bkomuves/BkDXRJ-fC">defined as</a> $2^{256} * F(t_i)$, where $2^{256}$ represents the total number of 256-bit addresses in the address space, and $F(t_i)$ represents the expansion function over time. As this allowed distance value increases along a curve, more and more addresses will be eligible to participate in reserving that slot. In total, eligible addresses are those that satisfy:</p>
+
+<p>$XOR(A, A_0) &lt; 2^{256} * F(t_i)$</p>
+
+<p>Furthermore, the client can change the curve of the rate of expansion, by setting a <a href="https://github.com/codex-storage/codex-research/blob/ad41558900ff8be91811aa5de355148d8d78404f/design/marketplace.md#dispersal">dispersal parameter</a> of the storage request, $h$, which represents the percentage of the network addresses that will be eligible halfway to the time of expiry. $h$ can be defined as:</p>
+
+<p>$h := F(0.5)$, where $0 \lt h \lt 1$ and $h \neq 0.5$</p>
+
+<p>Changing the value of $h$ will <a href="https://www.desmos.com/calculator/pjas1m1472">affect the curve of the rate of expansion</a> (interactive graph).</p>
+
+<h4>Expansion function, $F(t_i)$, in-depth</h4>
+
+<p>$F(t_i)$ defines the expansion factor of eligible addresses in the network over time.</p>
+
+<h5>Assumptions</h5>
+
+<p>It is assumed network addresses are randomly, and more-or-less uniformly, selected from a space of $2^{256}$.</p>
+
+<p>It is also assumed that the window can only change in discrete steps, based on some underlying blockchain&#x27;s cadence (for example this would be approx every 12 seconds in the case of Ethereum), and that we measure time based on timestamps encoded in blockchain blocks.</p>
+
+<p>However, with this assumption given, it is desired to be as granular and tunable as possibly.</p>
+
+<p>There is a time duration in which it is desired to go from a single network address to the whole address-space.</p>
+
+<p>To be able to make this work nicely, first a linear time function $t_i$ which goes from 0 to 1, is defined.</p>
+
+<h5>Implementation</h5>
+
+<p>At any desired block with timestamp $timestamp_i$, simply compute:</p>
+
+<p>$$t_i := \frac{timestamp_i - start}{expiry - start}$$</p>
+
+<p>Then to get a network range, any kind of expansion function $F(x)$ with $F(0)=0$ and $F(1)=1$ can be plugged in; for example, a parametric exponential:</p>
+
+<p>$$ F_s(x) = \frac{\exp(sx) - 1}{\exp(s) - 1} $$</p>
+
+<p>Remark: with this particular function, it is likely desired to have $s&lt;0$ (resulting in fast expansion initially, slowing down later). Here is a Mathematica one-liner to play with this idea:</p>
+<pre><code>    Manipulate[
+      Plot[ (Exp[s*x]-1)/(Exp[s]-1), {x,0,1}, PlotRange-&gt;Full ],
+        {s,-10,-1} ]</code></pre>
+<p>As an alternative, the same can easily be done with eg. the online <a href="https://www.desmos.com/calculator">Desmos</a> tool.</p>
+
+<h5>Address window</h5>
+
+<p>Finally, an address $A$ becomes eligible at block $i$ if the Kademlia distance from the &quot;window center&quot; $A_0$ is smaller than $2^{256}\times F(t_i)$:</p>
+
+<p>$$ XOR(A,A_0) &lt; 2^{256}\cdot F(t_i) $$</p>
+
+<p>Note: since $t_i$ only becomes 1 exactly at expiry, to allow the whole network to participate near the end, there should be a small positive $\delta &gt; 0$ such that $F(t)=1$ for $t&gt;1-\delta$, leaving the last about $100\delta$ percentage of the total slot fill window when the whole network is eligible to participate.</p>
+
+<p>Alternatively, $t_i$ could be rescaled to achieve the same effect:</p>
+
+<p>$$ t_i&#x27; := \min(\; t_i/(1-\delta)\;,\;1\;) $$</p>
+
+<p>The latter is probably simpler because it allows complete freedom in selecting the expansion function $F(x)$.</p>
+
+<h5>Parametrizing the speed of expansion</h5>
+
+<p>While, in theory, arbitrary expansions functions could be used, it is likely undesirable to have more than an one parameter family, that is, a single parameter to set the curve. However, even with a single parameter, there could be any number of different ways to map a number to the same family of curves.</p>
+
+<p>In the above example $F_s(t)$, while $s$ is quite natural from a mathematical perspective, it doesn&#x27;t really have any meaning for the user. A possibly better parametrization would be the value $h:=F_s(0.5)$, meaning &quot;how big percentage of network is allowed to participate at half-time&quot;. $s$ can be computed from $h$:</p>
+
+<p>$$ s = 2\log\left(\frac{1-h}{h}\right) $$</p>
+
+<h3>Abandoned ideas</h3>
+
+<h4>No reservation collateral</h4>
+
+<p>Reservation collateral was thought to be able to prevent a situation where an SP would reserve a slot then fail to fill it. However, collateral could not be burned as it created an attack vector for clients: clients could withhold the data and cause SPs to lose their reservation collateral. The reservation transaction itself creates a signal of intent from an SP to fill the slot. If the SP were to not fill the slot, then other SPs that have reserved the slot will fill it.</p>
+
+<h4>No reservation/fill reward</h4>
+
+<p>Fill rewards were originally proposed to incentivize filling slots as fast as possible. However, the SPs are already being paid out for the time that they have filled the slot, thus negating the need for additional incentivization. If additional incentivization is desired by the client, then an increase in the value of the storage request is possible.</p>
+
+<p>Adding a fill reward for SPs who ultimately fill the slot is not necessary because, like the SP rewards for providing proofs, fill rewards would be paid once the storage request successfully completes. This would mean that the fill reward is effectively the same as an increase in value of the storage request payout. Therefore, if a client is so inclined to provide a fill reward, they could instead increase the total reward of the storage request.</p>
+
+<p>In this simplified slot reservations proposal, there will not be reservation collateral nor reward requirements until the behavior in a live environment can be observed to determine these are necessary mechanisms.</p>
+
+<h3>Slot reservation attacks</h3>
+
+<p>Name         | Attack description :------------|:-------------------------------------------------------------- Clever SP    | SP drops slot when a better opportunity presents itself Lazy SP      | SP reserves a slot, but doesn&#x27;t fill it Censoring SP | acts like a lazy SP for specific CIDs that it tries to censor Greedy SP    | SP tries to fill multiple slots in a request Sticky SP    | SP tries to fill the same slot in a contract renewal Lazy client  | client doesn&#x27;t release content on the network</p>
+
+<h4>Clever SP attack</h4>
+
+<p>In this attack, an SP could fill a slot, and while fulfilling its duties, see that a better opportunity has arisen, and abandon its duties in the first slot to fill the second slot.</p>
+
+<p>This attack is mitigated by the SP losing its request collateral for the first slot once it is abandoned. Additionally, once the SP fills the first slot, it will accrue rewards over time that will not be paid out until the request successfully completes. These rewards act as another disincentive for the SP to abandon the slot.</p>
+
+<p>The behavior of SPs filling better opportunities is not necessarily an attack. If an SP is fulfilling its duties on a slot and finds a better opportunity elsewhere, it should be allowed to do so. The repair mechanisms will allow the abandoned slot to be refilled by another SP that deems it profitable.</p>
+
+<h4>Lazy SP attack</h4>
+
+<p>In this attack, a SP reserves a slot, but waits to fill the slot hoping a better opportunity will arise, in which the reward earned in the new opportunity would be greater than the reward earned in the original slot.</p>
+
+<p>This attack is mitigated by allowing for multiple reservations per slot. All SPs that have secured a reservation (capped at three) will race to fill the slot. Thus, if one or more SPs that have reserved the slot decide to pursue other opportunities, the other SPs that have reserved the slot will still be able to fill the slot.</p>
+
+<p>In addition, the expanding window mechanism allows for more SPs to participate (reserve/fill) as time progresses, so there will be a larger pool of SPs that could potentially fill the slot. Because each reservation will have its own unique expanding window source, SPs reserving one slot in a request will likely not have the same opportunities to reserve/fill the same slot in another request.</p>
+
+<h4>Censoring SP attack</h4>
+
+<p>The &quot;censoring SP attack&quot; is when an SP attempts to withhold providing specific CIDs from the network in an attempt to censor certain content. An SP could also try this attack in the case of repair, hoping to prevent a freed slot from being repaired.</p>
+
+<p>Even if one SP withholds specific content, the dataset, along with the withheld CID can be reconstructed from K chunks (provided by other SPs) allowing the censored CID to be accessed. In the case of repair, the SP would need to control M+1 chunks to prevent data reconstruction by other nodes in the network. The expanding window mechanism seeks to prevent SPs from filling multiple slots in the same request, which should prevent any one SP from controlling M+1 slots.</p>
+
+<h4>Greedy SP attack</h4>
+
+<p>The &quot;greedy SP attack&quot; is when one SP tries to fill multiple slots in a single request. Mitigation of this attack is achieved through the expanding windows for each request not allowing a single SP address to fill all the slots. This is only effective for the majority of time before expiry, however, meaning it is not impossible for this attack to occur. If a request is offered and the slots are not filled after some time, the expanding windows across the slots may open up to allow all SPs in the network to fill multiple slots in the request.</p>
+
+<p>A controlling entity may try to circumvent the expanding window by setting up a sybil attack with many highly distributed nodes. Even with many nodes covering a large distribution of the address space, the randomness of the expanding window will make this attack highly improbable, except for undervalued requests that do not have slots filled early, in which case there would be a lack of motivation to attack data that is undervalued.</p>
+
+<h4>Sticky SP attack</h4>
+
+<p>The &quot;sticky SP attack&quot; is where an SP tries to withhold data for a contract renewal so they are able to fill the slot again. The SP withholds data from all other SPs until the expanding window allows their address, then they quickly fill the slot (they are quick because they don&#x27;t need to download the data). As in the censoring SP attack, the SP would need to control M+1 slots for this to be effective, because that is the only way to prevent the CID from being reconstructed from K slots available from other SPs.</p>
+
+<h4>Lazy client attack</h4>
+
+<p>In this attack, a client might want to disrupt the network by creating requests for storage but never releasing the data to SPs attempting to fill the slot. The transaction cost associated with this type of behavior should provide some mitigation. Additionally, if a client tries to spam the network with these types of untenable storage requests, the transaction cost will increase with the number of requests due to increasing block fill rate and rising gas costs associated. However, this attack is not impossible.</p>
+
+<h3>Open questions</h3>
+
+<p>Perhaps the expanding window mechanism should be network-aware such that there are always a minimum of two SPs in a window at a given time, to encourage competition? The downside of this is that active SPs need to be persisted and tracked in the contract, with larger transaction costs resulting from this.</p>
+
+<h3>Trade offs</h3>
+
+<p>The main advantage to this design is that nodes and the network would not be overloaded at the outset of slots being available for SP participation.</p>
+
+<p>The downside of this proposal is that an SP would have to participate in two races: one for reserving the slot and another for filling the slot once reserved, which brings additional complexities in the smart contract.</p>
+
+<p>In addition, there are two attack vectors, the &quot;greedy SP attack&quot; and the &quot;lazy client attack&quot; that are not well covered in the slot reservation design. There could be even more complexities added to the design to accommodate these two attacks (see the other proposed solution for the mitigation of these attacks).</p>
+
+<div class="note">Written while leading the marketplace team at Codex. The reservation mechanism described here was implemented in the protocol; the expanding window was not. The underlying Kademlia distance function was defined by a research colleague and formalised here.</div>
+<p style="margin-top:36px"><a class="back" href="/">&larr; Back</a> &nbsp; <a class="back" href="/recoverability-analysis">Recoverability analysis &rarr;</a> &nbsp; <a class="back" href="/how-i-work">How this shipped &rarr;</a> &nbsp; <a class="back" href="/marketplace-state-restoration">Marketplace state restoration &rarr;</a></p>
+</div></body></html>

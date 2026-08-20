@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231B4D7A%27/%3E%3Ctext x=%2732%27 y=%2744%27 font-family=%27ui-monospace,monospace%27 font-size=%2734%27 font-weight=%27600%27 fill=%27%23FBFAF7%27 text-anchor=%27middle%27%3E%7B%7D%3C/text%3E%3C/svg%3E">
+<title>Marketplace state restoration &middot; Eric Mastro</title>
+<meta name="description" content="Benchmarked comparison of two on-chain state restoration architectures for a decentralised storage marketplace, cutting worst-case gas by a factor of ten.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBFAF7;
+    --paper-2:#F2F0EA;
+    --graphite:#21262B;
+    --slate:#5C666E;
+    --rule:#DDD9D0;
+    --plot:#1B4D7A;
+    --signal:#8B2A6B;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+    --wrap:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--graphite);
+    font-family:var(--sans);font-size:16.5px;line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--wrap);margin:0 auto;padding:0 28px}
+  a{color:var(--plot);text-decoration:none;border-bottom:1px solid rgba(27,77,122,.3)}
+  a:hover{border-bottom-color:var(--plot)}
+  a:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:2px}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;border-bottom:1px solid var(--rule);overflow:hidden}
+  #net{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hero-inner{position:relative;padding:96px 0 84px;pointer-events:none}
+  .eyebrow{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--slate);margin:0 0 22px;
+  }
+  .eyebrow b{color:var(--signal);font-weight:500}
+  h1{
+    font-family:var(--mono);font-weight:500;letter-spacing:-.035em;
+    font-size:clamp(2.6rem,7.2vw,4.7rem);line-height:1.02;margin:0 0 20px;
+  }
+  .lede{
+    font-size:clamp(1.05rem,2.1vw,1.32rem);line-height:1.5;max-width:41ch;
+    color:var(--graphite);margin:0 0 30px;font-weight:400;
+  }
+  .links{display:flex;flex-wrap:wrap;gap:9px;pointer-events:auto}
+  .links a{
+    font-family:var(--mono);font-size:12.5px;letter-spacing:.03em;
+    border:1px solid var(--rule);border-radius:2px;padding:8px 15px;
+    background:rgba(251,250,247,.86);color:var(--graphite);
+    transition:border-color .16s,color .16s;
+  }
+  .links a:hover{border-color:var(--plot);color:var(--plot)}
+
+  /* ---------- sections ---------- */
+  section{padding:74px 0;border-bottom:1px solid var(--rule)}
+  .sec-label{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--slate);margin:0 0 34px;
+  }
+  h2{
+    font-family:var(--mono);font-weight:500;letter-spacing:-.022em;
+    font-size:clamp(1.5rem,3.1vw,2.05rem);line-height:1.18;margin:0 0 20px;max-width:24ch;
+  }
+  .thesis p{max-width:60ch;font-size:1.08rem;margin:0 0 17px;color:#31383E}
+  .thesis p:last-child{margin-bottom:0}
+
+  /* ---------- metrics ---------- */
+  .metrics{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:42px;
+  }
+  .metric{background:var(--paper);padding:22px 20px}
+  .metric .n{
+    font-family:var(--mono);font-size:1.85rem;font-weight:500;
+    letter-spacing:-.03em;color:var(--plot);display:block;line-height:1.1;
+  }
+  .metric .k{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--slate);margin-top:8px;display:block;line-height:1.5;
+  }
+
+  /* ---------- timeline ---------- */
+  .role{
+    display:grid;grid-template-columns:158px 1fr;gap:34px;
+    padding:26px 0;border-top:1px solid var(--rule);
+  }
+  .role:first-of-type{border-top:none}
+  .when{
+    font-family:var(--mono);font-size:12px;letter-spacing:.02em;
+    color:var(--slate);padding-top:4px;line-height:1.65;
+  }
+  .when b{display:block;color:var(--signal);font-weight:500}
+  .what h3{
+    font-family:var(--sans);font-size:1.09rem;font-weight:600;
+    margin:0 0 5px;letter-spacing:-.008em;
+  }
+  .where{
+    font-family:var(--mono);font-size:12px;color:var(--slate);
+    margin:0 0 11px;letter-spacing:.02em;
+  }
+  .what p{margin:0;color:#3A4247;font-size:.985rem;max-width:62ch}
+
+  /* ---------- work cards ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+  .card{background:var(--paper);padding:26px 24px}
+  .card .tag{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--signal);margin:0 0 11px;
+  }
+  .card h3{font-size:1.02rem;font-weight:600;margin:0 0 9px;letter-spacing:-.008em}
+  .card p{margin:0;font-size:.945rem;color:#3A4247;line-height:1.58}
+
+  /* ---------- stack ---------- */
+  .stack-row{display:grid;grid-template-columns:170px 1fr;gap:28px;padding:15px 0;border-top:1px solid var(--rule)}
+  .stack-row:first-child{border-top:none}
+  .stack-row dt{font-family:var(--mono);font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--slate);padding-top:3px}
+  .stack-row dd{margin:0;font-size:.985rem;color:#31383E}
+
+  /* ---------- contact ---------- */
+  .contact{border-bottom:none;padding-bottom:88px}
+  .contact h2{max-width:20ch}
+  .contact .links{margin-top:26px}
+  footer{
+    font-family:var(--mono);font-size:11.5px;color:var(--slate);
+    letter-spacing:.04em;padding:24px 0 40px;border-top:1px solid var(--rule);
+  }
+
+  @media (max-width:720px){
+    .hero-inner{padding:64px 0 56px}
+    .role{grid-template-columns:1fr;gap:9px}
+    .when{padding-top:0}
+    .when b{display:inline;margin-right:8px}
+    .stack-row{grid-template-columns:1fr;gap:6px}
+    section{padding:54px 0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    #net{display:none}
+  }
+</style>
+<style>
+  .doc{max-width:760px;margin:0 auto;padding:52px 28px 90px}
+  .back{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;border:none}
+  .doc h1{font-size:clamp(1.9rem,4.6vw,2.7rem);margin:26px 0 8px;letter-spacing:-.03em}
+  .doc h2{font-family:var(--mono);font-weight:500;font-size:1.25rem;margin:44px 0 12px;
+          padding-top:16px;border-top:1px solid var(--rule);max-width:none}
+  .doc h3{font-family:var(--sans);font-size:1.06rem;font-weight:600;margin:28px 0 8px}
+  .doc h4,.doc h5{font-family:var(--sans);font-size:.98rem;font-weight:600;margin:22px 0 6px;color:var(--slate)}
+  .doc p,.doc li{font-size:1rem;line-height:1.68;color:#31383E}
+  .doc ul{padding-left:20px} .doc li{margin-bottom:5px}
+  .doc pre{background:var(--paper-2);border:1px solid var(--rule);padding:16px 18px;overflow-x:auto;
+           font-family:var(--mono);font-size:12.5px;line-height:1.5;border-radius:2px}
+  .doc code{font-family:var(--mono);font-size:.9em;background:var(--paper-2);padding:1px 4px;border-radius:2px}
+  .doc pre code{background:none;padding:0}
+  .doc table{border-collapse:collapse;width:100%;margin:16px 0;font-size:.94rem}
+  .doc th,.doc td{border:1px solid var(--rule);padding:8px 11px;text-align:left;vertical-align:top}
+  .doc th{background:var(--paper-2);font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase}
+  .meta{font-family:var(--mono);font-size:12px;color:var(--slate);margin:0 0 8px}
+  .note{border-left:2px solid var(--signal);padding:12px 0 12px 16px;margin:26px 0;
+        font-size:.95rem;color:var(--slate);line-height:1.6}
+</style><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[
+    {left:'$$',right:'$$',display:true},
+    {left:'$',right:'$',display:false}],throwOnError:false});"></script>
+</head>
+<body><div class="doc">
+<a class="back" href="/">&larr; Eric Mastro</a>
+<p class="meta" style="margin-top:34px">Protocol design &middot; Logos Storage (formerly Codex)</p>
+
+<h1>Marketplace state restoration</h1>
+<p>There are requirements in the Marketplace for allowing both client and host nodes to be restarted (due to power failures, hardware failures, node maintenance, etc). When a client/host is restarted, the state of the client&#x27;s purchases and the host&#x27;s sales must be restored. The decision was made to maintain the state on-chain, and when a node is restarted, its client/host (or both) state can be obtained from the current on-chain state. This requires the ability to retrieve a client&#x27;s requests (their purchases) and a host&#x27;s slots (their sales). The state management is mostly straightforward: client&#x27;s requests can be added, removed individually, and listed, and host&#x27;s slots can be added, removed individually, and listed, by using an <code>EnumerableSet.Bytes32Set</code> data structure. However, the complication comes when a request is failed, all the slots in a request must be removed from the list of host&#x27;s slots, and this is not possible without iterating and deleting one-by-one. This type of iteration and deletion approach incurs significant gas penalties and if not capped, could cause gas out-of-gas exceptions (though it is capped in the DAL approach).</p>
+
+<p>This reports explores two different approaches to solve the complication of storage request failures: the data access layer (DAL) approach and the additional interaction (AI) approach.</p>
+
+<h2>Considerations</h2>
+
+<p>The issue was avoided for cancelled requests by altering the requirements such that hosts who want to get paid for their time occupying a slot before cancellation must call <code>freeSlot</code> directly.</p>
+
+<p>Additional required interactions, or transactions interacting with the marketplace contract, from hosts and clients to continue using Codex are seen as negative because of the cost and effort involved. Additionally, there are UX considerations to be worked out as the data required for interaction decision making needs to be made available and presented to the end user (client or host).</p>
+
+<h2>Methodology</h2>
+<p>The gas reports were produced using https://github.com/cgewecke/hardhat-gas-reporter, which uses https://github.com/cgewecke/eth-gas-reporter to compute the gas used in each transaction, including deployment of the contract(s). For this test comparison, only the marketplace tests were run, as those are the only relevant tests needed. A <a href="https://coinmarketcap.com/api/pricing/">free coinmarketcap API key</a> was obtained for testing purposes and added to the local environment. Tests were run using the following command:</p>
+<pre><code>export CMC_API_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+REPORT_GAS=1 npm test test/Marketplace.test.js  </code></pre>
+<p>Apart from the normal marketplace unit tests, a special unit test was created to test the limits of the contract. This unit test creates a storage request with 256 slots (the max in the DAL approach) and a <code>maxSlotLoss</code> of <code>0</code> which means the contract is considered failed after the first slot is freed. These parameters create the conditions for the maximum gas cost of creating a slot as well as the maximum number of slots to be deleted on the first <code>freeSlot</code> transaction. More realistic storage request parameters would likely be used by clients, however these parameters are still within the allowed ranges.</p>
+
+<h2>Data Access Layer (DAL) approach</h2>
+<p>This <a href="https://github.com/status-im/dagger-contracts/tree/list-of-active-sales">branch</a> introduces a data access layer to the marketplace contract. It has a cap of 256 slots and deletes slots when a request is failed. The data access layer keeps track of data between tables bi-directionally, so they can be referenced in both directions (from one-to-many and many-to-one), randomly (using a mapping), and sequentially (using an array index), allowing for referential integrity to be maintained. For example, a slot cannot be added when it references a request that doesn&#x27;t exist, nor can a request be deleted when it references slots that exist.</p>
+
+<p>The major downside of this approach is that there is a 10x gas penalty for iterating and deleting the maximum number of slots (256) from the list of host&#x27;s slots, when compared to the AI approach.</p>
+
+<pre><code>·--------------------------------------|---------------------------|--------------|-----------------------------·
+|         Solc version: 0.8.8          ·  Optimizer enabled: true  ·  Runs: 1000  ·  Block limit: 30000000 gas  │
+·······································|···························|··············|······························
+|  Methods                             ·               12 gwei/gas                ·       1240.70 eur/eth       │
+····················|··················|·············|·············|··············|···············|··············
+|  Contract         ·  Method          ·  Min        ·  Max        ·  Avg         ·  # calls      ·  eur (avg)  │
+····················|··················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  deposit         ·      78119  ·     129419  ·      112822  ·           68  ·       1.68  │
+····················|··················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  fillSlot        ·     412400  ·    1187346  ·      664152  ·          407  ·       9.89  │
+····················|··················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  freeSlot        ·      93368  ·    3115596  ·      209407  ·           33  ·       3.12  │
+····················|··················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  payoutSlot      ·          -  ·          -  ·      145619  ·            7  ·       2.17  │
+····················|··················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  requestStorage  ·    1369315  ·    1463058  ·     1454358  ·           71  ·      21.65  │
+····················|··················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  withdraw        ·          -  ·          -  ·       68089  ·            1  ·       1.01  │
+····················|··················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  withdrawFunds   ·     104750  ·     104762  ·      104760  ·            6  ·       1.56  │
+····················|··················|·············|·············|··············|···············|··············
+|  TestToken        ·  approve         ·      46219  ·      46243  ·       46226  ·          142  ·       0.69  │
+····················|··················|·············|·············|··············|···············|··············
+|  TestToken        ·  mint            ·      51223  ·      68335  ·       55507  ·          288  ·       0.83  │
+····················|··················|·············|·············|··············|···············|··············
+|  Deployments                         ·                                          ·  % of limit   ·             │
+·······································|·············|·············|··············|···············|··············
+|  TestMarketplace                     ·          -  ·          -  ·     3720155  ·       12.4 %  ·      55.39  │
+·······································|·············|·············|··············|···············|··············
+|  TestToken                           ·          -  ·          -  ·      685484  ·        2.3 %  ·      10.21  │
+·--------------------------------------|-------------|-------------|--------------|---------------|-------------·</code></pre>
+
+<h2>Additional Interaction (AI) approach</h2>
+<p>This <a href="https://github.com/status-im/dagger-contracts/tree/mark/list-of-active-sales">branch</a> is using two <code>EnumerableSet.Bytes32Sets</code> to keep track of requests per client, and slots per host. The downside of this approach is that there is an additional host interaction required to free their slot when a request has failed. There is also no reference integrity as in the DAL approach.</p>
+<pre><code>·----------------------------------------|---------------------------|--------------|-----------------------------·
+|          Solc version: 0.8.8           ·  Optimizer enabled: true  ·  Runs: 1000  ·  Block limit: 30000000 gas  │
+·········································|···························|··············|······························
+|  Methods                               ·               11 gwei/gas                ·       1241.11 eur/eth       │
+····················|····················|·············|·············|··············|···············|··············
+|  Contract         ·  Method            ·  Min        ·  Max        ·  Avg         ·  # calls      ·  eur (avg)  │
+····················|····················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  deposit           ·      95197  ·     129397  ·      113592  ·           66  ·       1.55  │
+····················|····················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  fillSlot          ·     323821  ·    1098767  ·      568487  ·          396  ·       7.76  │
+····················|····················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  forciblyFreeSlot  ·      67649  ·      84152  ·       74517  ·           25  ·       1.02  │
+····················|····················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  freeSlot          ·      69656  ·     218432  ·      152305  ·           13  ·       2.08  │
+····················|····················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  requestStorage    ·    1339870  ·    1413094  ·     1405603  ·           69  ·      19.19  │
+····················|····················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  withdraw          ·          -  ·          -  ·       67993  ·            1  ·       0.93  │
+····················|····················|·············|·············|··············|···············|··············
+|  TestMarketplace  ·  withdrawFunds     ·          -  ·          -  ·      198711  ·            6  ·       2.71  │
+····················|····················|·············|·············|··············|···············|··············
+|  TestToken        ·  approve           ·      46219  ·      46243  ·       46225  ·          136  ·       0.63  │
+····················|····················|·············|·············|··············|···············|··············
+|  TestToken        ·  mint              ·      51223  ·      68335  ·       55507  ·          276  ·       0.76  │
+····················|····················|·············|·············|··············|···············|··············
+|  Deployments                           ·                                          ·  % of limit   ·             │
+·········································|·············|·············|··············|···············|··············
+|  TestMarketplace                       ·          -  ·          -  ·     3262303  ·       10.9 %  ·      44.54  │
+·········································|·············|·············|··············|···············|··············
+|  TestToken                             ·          -  ·          -  ·      685484  ·        2.3 %  ·       9.36  │
+·----------------------------------------|-------------|-------------|--------------|---------------|-------------·</code></pre>
+
+<h2>Comparison</h2>
+<p>Overall, the most significant difference is in <code>freeSlot</code>, which is an expected result based on the difference in approaches. <code>freeSlot</code> is called every time a slot is freed, which determines if a request has failed, and thus executes the failed request logic (to free up all host&#x27;s slots). However, the gas difference is quite extreme: it is 10x higher in the DAL approach.</p>
+
+<p>For freeing slots, the maximum gas difference, ${\Delta}_{gas}$, using DAL max gas cost, $D_{max}$, and AI max combined gas costs (<code>freeSlot</code> and <code>forciblyFreeSlot</code>), $A_{max}$, can be used to calculate the total gas difference of the most expensive transaction in the two approaches:</p>
+
+<p>${\Delta}_{gas} = D_{max}-A_{max}$</p>
+
+<p>The total value in Euros, $T_{price}$, given the gas price, $p_{gas}$ and ETH price, $ETH_{price}$ is: $T_{price} = {\frac {p_{gas}}{1e^9}} \cdot ETH_{price} \cdot {\Delta}_{gas}$</p>
+
+<p>From the gas reports: $D_{max} = 3115596 gas$ $A_{max}  = 218432 + 84152 = 302584 gas$ ${\Delta}_{gas} = 3115596-302584 = 2813012 gas$</p>
+
+<p>At time of writing: $ETH_{price}$ = €1241.11 $p_{gas}$ = $11 gwei$</p>
+
+
+<p>And therefore, the total difference in transaction cost in Euros: $T_{price} = {\frac{11gwei}{1e^9}} \cdot €1241.11 \cdot 2813012 gas = €38.40$</p>
+
+<p>Keep in mind that this transaction cost would only occur at maximum one time per request when it fails.</p>
+
+<h3>Filling slots</h3>
+
+<table>
+<tr><th>Approach</th><th>Min</th><th>Max</th><th>Avg</th></tr>
+<tr><td>DAL</td><td>412400</td><td>1187346</td><td>664152</td></tr>
+<tr><td>AI</td><td>323821</td><td>1098767</td><td>568487</td></tr>
+</table>
+
+<p>The smallest transactions incurred a ~60k gas penalty in the DAL branch, while the largest and average transactions incurred a ~100k gas penalty. This is almost certainly due to the additional data access layer overhead, which keeps track of data between tables bi-directionally, so there are additional storage requirements per transaction.</p>
+
+<p>There is a large difference between the minimum and maximum cost of filling a slot as each subsequent slot filling costs more than the previous, as well as takes longer to execute. This means the first slot fill is the cheapest and the last one is the most expensive, with the maximum number tested being 256.</p>
+
+<h3>Freeing slots</h3>
+<table>
+<tr><th>Approach</th><th>Min</th><th>Max</th><th>Avg</th></tr>
+<tr><td>DAL</td><td>93368</td><td>3115596</td><td>209407</td></tr>
+<tr><td>AI <code>freeSlot</code></td><td>69656</td><td>218432</td><td>152305</td></tr>
+<tr><td>AI <code>forciblyFreeSlot</code></td><td>67649</td><td>84152</td><td>74517</td></tr>
+</table>
+
+<p>Understanding the implications of freeing slots, especially during request failure, was a core goal of the gas reporting. Indeed, the most significant gas savings are in the AI approach when calling <code>freeSlot</code>. In the DAL approach, <code>freeSlot</code> is called by an aggregator when enough proofs are missed, and when too many slots are freed, host&#x27;s slots are iterated and deleted one-by-one, which costs a substanial amount of gas (max 3115596). In AI&#x27;s approach, hosts are required to call <code>freeSlot</code> themselves (instead of the aggregator) when a request is finished or cancelled and they want to get paid or withdraw their funds. The approach requires calls to both <code>freeSlot</code> and <code>forciblyFreeSlot</code>, however even combining their maximum gas together produces a factor of 10x less gas spent than the DAL approach. Here, host&#x27;s slots are deleted individually, preventing iteration and deletion, thus the gas savings. However, AI&#x27;s approach holds a couple of downsides. The most notable downside is the additional interaction required on behalf of the host to free a slot and get paid. Also, if the request fails, there is no immediate incentive for a host to call <code>freeSlot</code> as there is no payout to be sent to the host. However, if a host wants to withdraw its collateral, it would be required to call <code>freeSlot</code> first, as withdrawal of collateral requires no active slots for a host.</p>
+
+<h2>Further exploration</h2>
+
+<h3>Mapping gas boundaries</h3>
+<p>Additional tests were setup to understand further how mappings use gas in add/delete operations, what the gas impact is on leaving dangling values in a mapping, and what the upper bounds on the quantities of danging values may be.</p>
+
+<h4>Methodology</h4>
+
+<p>The tests can be run by <a href="https://github.com/emizzle/ethereum-gas-tests">cloning the repo</a> and running:</p>
+<pre><code>npx hardhat test</code></pre>
+<p>This performs a series of tests on three different &quot;simple&quot; types of mappings:</p>
+<pre><code>mapping(uint =&gt; bool) public simpleBool;
+
+mapping(uint =&gt; uint) public simpleUint;
+
+mapping(uint =&gt; Simple) public simpleStruct;</code></pre>
+<p>Each struct is added to and deleted from once for each run. The default number of runs is 2048, which can be overridden using:</p>
+<pre><code>RUNS=10000 npx hardhat test</code></pre>
+<p>There is an additional mapping type being tested that uses a <code>uint</code> index &quot;pointer&quot; that points to an <code>EnumerableSet.Bytes32Set</code> which can store an unordered list of <code>bytes32</code> values and each of those values can be randomly or sequentially accessed:</p>
+<pre><code>mapping(uint =&gt; EnumerableSet.Bytes32Set) private enumSet;</code></pre>
+<p>For each run, there a default of three sets created (at mapping index <code>0</code>, <code>1</code>, and <code>2</code>) with each set being added to and removed from <code>RUNS</code> times (default 256). The default number of sets can be overridden using:</p>
+<pre><code>NUM_SETS=5 npx hardhat test</code></pre>
+<p>And it can be combined with the number of runs:</p>
+<pre><code>RUNS=10000 NUM_SETS=5 npx hardhat test</code></pre>
+<h4>Findings</h4>
+<p>Tests were setup such that we could attempt to answer the following questions:</p>
+<ol><li>How do mappings use gas in add/delete operations and how does this impact execution time?</li><li>What are the gas impact on subsequent transactions when leaving dangling values in a mapping and what are the impacts on execution time?</li><li>What are the upper bounds on the quantities of danging values that can be left in a mapping?</li></ol>
+
+<h5>1. Add/delete gas impacts</h5>
+<p>The tests were run 2048 times with 5 sets, using:</p>
+<pre><code>NUM_SETS=5 npx hardhat test</code></pre>
+<p>Raw data results can be found in Appendix A.</p>
+
+<p>Adding and deleting values from both the simple and &quot;pointer&quot; mappings shows that the only gas penalty arose from the initial transaction to allocate the mapping in storage. The gas penalty for the initial transaction where the first value of the mapping was set was about 17,000 gas across both simple and &quot;pointer&quot; methods. A somewhat unexpected result was that the longest execution time did not belong to the first transaction (where storage was allocated), but occurred during a seemingly random iteration -- perhaps there were variances in the test machine&#x27;s cpu/io load.</p>
+
+<p>Gas used during deletions varied based on the size of storage allocations being freed, as expected. These deletions were all constant across runs, with minimal variance, and no differences between position (eg first or last).</p>
+<h5>2. Gas impacts of dangling values</h5>
+<p>The tests were run 2048 times with 5 sets, using:</p>
+<pre><code>NUM_SETS=5 npx hardhat test</code></pre>
+<p>Raw data results can be found in Appendix A.</p>
+
+<p>The gas impacts of dangling values was tested using the &quot;pointer&quot; method. Three <code>EnumerableSet.Bytes32Set</code>s were created in a single mapping, each accessible by an index. Each run of 100,000 added or deleted a value to/from each set, without resetting any values between sets. The goal here is to continually load or deload the mappings and see if the gas increased (in the case of additions), decreased (in the case of deletes), or if there was any execution time impact at all.</p>
+
+<p>When adding values to the mappings, as with #1, the greatest gas cost and execution time was for allocating the mapping structure in storage on the first transaction. Each additional transaction was nearly constant in gas/time, with negligible variances. Additionally, creating more dangling in each additional set did not create a gas penalty, with the min, max, and average gas costs between all sets being roughly the same (±100gas).</p>
+
+<p>When rmeoving values from the mappings, each removal was nearly constant in gas and time, with negligible differences.</p>
+<h5>3. Dangling value upper bounds</h5>
+<p>This test was isolated to the &quot;pointer&quot; method and only for addition. The test was run 100,000 times with 1 set in an attempt to see if the upper boundary of the mapping was able to be reached with 100,000 values:</p>
+<pre><code>RUNS=100000 NUM_SETS=1 npx hardhat test</code></pre>
+<p>The test completed in about 18 minutes. The gas spent for each addition operation was exactly the same as with lower boundary tests, meaning the gas was highest in the initial transaction then constant thereafter. However, the execution time for a seemingly random iteration (#97547) was quite high at nearly 1 second, even though the average time per transaction was 9ms. It&#x27;s very hard to determine if this max value anomaly is in fact anomalous, or if it is something that correlates with the larger dataset.</p>
+
+<pre><code>Total runs: 100000
+Gas Used
+min:  74067 (10ms, run #8456)
+max:  91203 (39ms, run #0)
+avg:  74101 (9ms)
+
+Execution time
+min:  8ms (run #312)
+max:  975ms (run #97547)
+avg:  9ms</code></pre>
+
+
+
+
+
+<h3>Preventing an additional interaction</h3>
+<p>To prevent the additional interaction, the AI approach could introduce the iterative deletion that the DAL uses. In order to iteratively delete host&#x27;s slots in the AI approach when the request fails, there would need to be a way to iterate the slots for the request that failed and remove them from <code>slotsPerHost</code>. The way the marketplace contract is currently setup, this would require iterating all slots on the network, filtering by request, then removing that slot from <code>slotPerHost</code>. This would almost certainly run out of gas as iterating all the slots in the network is unfeasible. An additional data structure can allow for random access of slots per request, which needs to be maintained through the request lifecycle. Adding this type of data structure to the AI approach starts to resemble the DAL approach, however without the referential integrity. Additional gas reporting would be needed to understand how the gas penalty would compare to the DAL approach. If the gas penalty is less than that of the DAL approach, then the AI approach overall could likely have a lower gas profile altogether and could be the ideal approach overall.</p>
+
+<h2>Appendix A: Gas data</h2>
+<pre><code>NUM_SETS=5 npx hardhat test
+
+  Mapping
+    Create
+      Simple
+        ✓ Should create a bool in the mapping (19780ms)
+         Total runs: 2048
+         Gas Used
+         min:  48671 (20ms, run #1)
+         max:  65771 (35ms, run #0)
+         avg:  48679 (8ms)
+         Execution time
+         min:  7ms (run #252)
+         max:  35ms (run #0)
+         avg:  8ms
+        ✓ Should create a uint in the mapping (27255ms)
+         Total runs: 2048
+         Gas Used
+         min:  48574 (15ms, run #1)
+         max:  65674 (20ms, run #0)
+         avg:  48582 (9ms)
+         Execution time
+         min:  8ms (run #918)
+         max:  58ms (run #298)
+         avg:  9ms
+        ✓ Should create a struct in the mapping  (35920ms)
+         Total runs: 2048
+         Gas Used
+         min:  162699 (14ms, run #1574)
+         max:  179871 (20ms, run #0)
+         avg:  162773 (13ms)
+         Execution time
+         min:  11ms (run #18)
+         max:  65ms (run #1003)
+         avg:  13ms
+      EnumerableSet.Bytes32Set
+         Filling set 0
+         Total runs: 2048
+         Gas Used
+         min:  74079 (12ms, run #30)
+         max:  91203 (13ms, run #0)
+         avg:  74109 (11ms)
+         Execution time
+         min:  9ms (run #11)
+         max:  69ms (run #29)
+         avg:  11ms
+
+        ✓ Should create value in a bytes32 set in the Bytes32Set (30059ms)
+         Filling set 1
+         Total runs: 2048
+         Gas Used
+         min:  74079 (11ms, run #199)
+         max:  91203 (14ms, run #0)
+         avg:  74109 (11ms)
+         Execution time
+         min:  10ms (run #13)
+         max:  34ms (run #513)
+         avg:  11ms
+
+        ✓ Should create value in a bytes32 set in the Bytes32Set (30336ms)
+         Filling set 2
+         Total runs: 2048
+         Gas Used
+         min:  74079 (13ms, run #54)
+         max:  91203 (11ms, run #0)
+         avg:  74109 (11ms)
+         Execution time
+         min:  9ms (run #247)
+         max:  90ms (run #1105)
+         avg:  11ms
+
+        ✓ Should create value in a bytes32 set in the Bytes32Set (31405ms)
+         Filling set 3
+         Total runs: 2048
+         Gas Used
+         min:  74079 (12ms, run #113)
+         max:  91203 (11ms, run #0)
+         avg:  74109 (11ms)
+         Execution time
+         min:  10ms (run #77)
+         max:  204ms (run #87)
+         avg:  11ms
+
+        ✓ Should create value in a bytes32 set in the Bytes32Set (31772ms)
+         Filling set 4
+         Total runs: 2048
+         Gas Used
+         min:  74067 (12ms, run #1969)
+         max:  91203 (10ms, run #0)
+         avg:  74109 (11ms)
+         Execution time
+         min:  10ms (run #0)
+         max:  167ms (run #1131)
+         avg:  11ms
+
+        ✓ Should create value in a bytes32 set in the Bytes32Set (31781ms)
+    Delete
+      Simple
+        ✓ Should delete a bool in the mapping (43933ms)
+         Total runs: 2048
+         Gas Used
+         min:  21985 (10ms, run #0)
+         max:  22009 (9ms, run #257)
+         avg:  22007 (9ms)
+         Execution time
+         min:  7ms (run #297)
+         max:  171ms (run #1)
+         avg:  9ms
+        ✓ Should delete a uint in the mapping (43230ms)
+         Total runs: 2048
+         Gas Used
+         min:  21952 (7ms, run #0)
+         max:  21976 (9ms, run #257)
+         avg:  21974 (9ms)
+         Execution time
+         min:  7ms (run #0)
+         max:  175ms (run #676)
+         avg:  9ms
+        ✓ Should delete a struct in the mapping (60572ms)
+         Total runs: 2048
+         Gas Used
+         min:  41724 (11ms, run #0)
+         max:  41744 (12ms, run #257)
+         avg:  41742 (13ms)
+         Execution time
+         min:  10ms (run #1539)
+         max:  203ms (run #1)
+         avg:  13ms
+      EnumerableSet.Bytes32Set
+         Clearing set 0
+         Total runs: 2048
+         Gas Used
+         min:  23958 (10ms, run #0)
+         max:  23982 (9ms, run #257)
+         avg:  23980 (8ms)
+         Execution time
+         min:  7ms (run #2)
+         max:  206ms (run #910)
+         avg:  8ms
+
+        ✓ Should delete value in a bytes32 set in the Bytes32Set (25491ms)
+         Clearing set 1
+         Total runs: 2048
+         Gas Used
+         min:  23958 (10ms, run #0)
+         max:  23982 (8ms, run #257)
+         avg:  23980 (8ms)
+         Execution time
+         min:  7ms (run #8)
+         max:  63ms (run #888)
+         avg:  8ms
+
+        ✓ Should delete value in a bytes32 set in the Bytes32Set (25504ms)
+         Clearing set 2
+         Total runs: 2048
+         Gas Used
+         min:  23958 (10ms, run #0)
+         max:  23982 (9ms, run #257)
+         avg:  23980 (8ms)
+         Execution time
+         min:  7ms (run #698)
+         max:  41ms (run #793)
+         avg:  8ms
+
+        ✓ Should delete value in a bytes32 set in the Bytes32Set (25475ms)
+         Clearing set 3
+         Total runs: 2048
+         Gas Used
+         min:  23958 (10ms, run #0)
+         max:  23982 (9ms, run #257)
+         avg:  23980 (8ms)
+         Execution time
+         min:  6ms (run #1404)
+         max:  212ms (run #1083)
+         avg:  8ms
+
+        ✓ Should delete value in a bytes32 set in the Bytes32Set (25295ms)
+         Clearing set 4
+         Total runs: 2048
+         Gas Used
+         min:  23958 (9ms, run #0)
+         max:  23982 (9ms, run #257)
+         avg:  23980 (8ms)
+         Execution time
+         min:  7ms (run #63)
+         max:  186ms (run #1370)
+         avg:  8ms
+
+        ✓ Should delete value in a bytes32 set in the Bytes32Set (25286ms)
+
+·-----------------------------------|----------------------------|-------------|-----------------------------·
+|       Solc version: 0.8.17        ·  Optimizer enabled: false  ·  Runs: 200  ·  Block limit: 30000000 gas  │
+····································|····························|·············|······························
+|  Methods                                                                                                   │
+·············|······················|··············|·············|·············|···············|··············
+|  Contract  ·  Method              ·  Min         ·  Max        ·  Avg        ·  # calls      ·  usd (avg)  │
+·············|······················|··············|·············|·············|···············|··············
+|  Mapping   ·  enumSetAdd          ·       74067  ·      91203  ·      74110  ·        20480  ·          -  │
+·············|······················|··············|·············|·············|···············|··············
+|  Mapping   ·  enumSetClear        ·       23958  ·      23982  ·      23980  ·        20480  ·          -  │
+·············|······················|··············|·············|·············|···············|··············
+|  Mapping   ·  enumSetCreate       ·       26455  ·      43555  ·      29875  ·            5  ·          -  │
+·············|······················|··············|·············|·············|···············|··············
+|  Mapping   ·  simpleBoolCreate    ·       48671  ·      65771  ·      48679  ·         6144  ·          -  │
+·············|······················|··············|·············|·············|···············|··············
+|  Mapping   ·  simpleBoolDelete    ·       21985  ·      22009  ·      22007  ·         4096  ·          -  │
+·············|······················|··············|·············|·············|···············|··············
+|  Mapping   ·  simpleStructCreate  ·      162699  ·     179871  ·     162773  ·         6144  ·          -  │
+·············|······················|··············|·············|·············|···············|··············
+|  Mapping   ·  simpleStructDelete  ·       41724  ·      41744  ·      41743  ·         4096  ·          -  │
+·············|······················|··············|·············|·············|···············|··············
+|  Mapping   ·  simpleUintCreate    ·       48574  ·      65674  ·      48582  ·         6144  ·          -  │
+·············|······················|··············|·············|·············|···············|··············
+|  Mapping   ·  simpleUintDelete    ·       21952  ·      21976  ·      21974  ·         4096  ·          -  │
+·············|······················|··············|·············|·············|···············|··············
+|  Deployments                      ·                                          ·  % of limit   ·             │
+····································|··············|·············|·············|···············|··············
+|  Mapping                          ·           -  ·          -  ·     795059  ·        2.7 %  ·          -  │
+·-----------------------------------|--------------|-------------|-------------|---------------|-------------·
+
+  16 passing (9m)</code></pre>
+<div class="note">Written while leading the marketplace team at Codex. Two competing designs were implemented on separate branches and benchmarked with <code>hardhat-gas-reporter</code>, then the difference priced in EUR at the ETH and gas prices of the day. A separate harness (<a href="https://github.com/emizzle/ethereum-gas-tests">ethereum-gas-tests</a>) established the cost boundaries of mapping allocation, deletion and dangling values across runs of up to 100,000 iterations. The analysis settled the architectural decision for the team.</div>
+<p style="margin-top:36px"><a class="back" href="/">&larr; Back</a> &nbsp; <a class="back" href="/recoverability-analysis">Recoverability analysis &rarr;</a> &nbsp; <a class="back" href="/how-i-work">How this shipped &rarr;</a> &nbsp; <a class="back" href="/slot-reservations">Slot reservations &rarr;</a></p>
+</div></body></html>

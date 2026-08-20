@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231B4D7A%27/%3E%3Ctext x=%2732%27 y=%2744%27 font-family=%27ui-monospace,monospace%27 font-size=%2734%27 font-weight=%27600%27 fill=%27%23FBFAF7%27 text-anchor=%27middle%27%3E%7B%7D%3C/text%3E%3C/svg%3E">
+<title>Recoverability analysis &middot; Eric Mastro</title>
+<meta name="description" content="Per-state analysis of crash, exception and cancellation outcomes across a distributed sales state machine, with remediation phased across four releases.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FBFAF7;
+    --paper-2:#F2F0EA;
+    --graphite:#21262B;
+    --slate:#5C666E;
+    --rule:#DDD9D0;
+    --plot:#1B4D7A;
+    --signal:#8B2A6B;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+    --wrap:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--graphite);
+    font-family:var(--sans);font-size:16.5px;line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--wrap);margin:0 auto;padding:0 28px}
+  a{color:var(--plot);text-decoration:none;border-bottom:1px solid rgba(27,77,122,.3)}
+  a:hover{border-bottom-color:var(--plot)}
+  a:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:2px}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;border-bottom:1px solid var(--rule);overflow:hidden}
+  #net{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hero-inner{position:relative;padding:96px 0 84px;pointer-events:none}
+  .eyebrow{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--slate);margin:0 0 22px;
+  }
+  .eyebrow b{color:var(--signal);font-weight:500}
+  h1{
+    font-family:var(--mono);font-weight:500;letter-spacing:-.035em;
+    font-size:clamp(2.6rem,7.2vw,4.7rem);line-height:1.02;margin:0 0 20px;
+  }
+  .lede{
+    font-size:clamp(1.05rem,2.1vw,1.32rem);line-height:1.5;max-width:41ch;
+    color:var(--graphite);margin:0 0 30px;font-weight:400;
+  }
+  .links{display:flex;flex-wrap:wrap;gap:9px;pointer-events:auto}
+  .links a{
+    font-family:var(--mono);font-size:12.5px;letter-spacing:.03em;
+    border:1px solid var(--rule);border-radius:2px;padding:8px 15px;
+    background:rgba(251,250,247,.86);color:var(--graphite);
+    transition:border-color .16s,color .16s;
+  }
+  .links a:hover{border-color:var(--plot);color:var(--plot)}
+
+  /* ---------- sections ---------- */
+  section{padding:74px 0;border-bottom:1px solid var(--rule)}
+  .sec-label{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--slate);margin:0 0 34px;
+  }
+  h2{
+    font-family:var(--mono);font-weight:500;letter-spacing:-.022em;
+    font-size:clamp(1.5rem,3.1vw,2.05rem);line-height:1.18;margin:0 0 20px;max-width:24ch;
+  }
+  .thesis p{max-width:60ch;font-size:1.08rem;margin:0 0 17px;color:#31383E}
+  .thesis p:last-child{margin-bottom:0}
+
+  /* ---------- metrics ---------- */
+  .metrics{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:42px;
+  }
+  .metric{background:var(--paper);padding:22px 20px}
+  .metric .n{
+    font-family:var(--mono);font-size:1.85rem;font-weight:500;
+    letter-spacing:-.03em;color:var(--plot);display:block;line-height:1.1;
+  }
+  .metric .k{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--slate);margin-top:8px;display:block;line-height:1.5;
+  }
+
+  /* ---------- timeline ---------- */
+  .role{
+    display:grid;grid-template-columns:158px 1fr;gap:34px;
+    padding:26px 0;border-top:1px solid var(--rule);
+  }
+  .role:first-of-type{border-top:none}
+  .when{
+    font-family:var(--mono);font-size:12px;letter-spacing:.02em;
+    color:var(--slate);padding-top:4px;line-height:1.65;
+  }
+  .when b{display:block;color:var(--signal);font-weight:500}
+  .what h3{
+    font-family:var(--sans);font-size:1.09rem;font-weight:600;
+    margin:0 0 5px;letter-spacing:-.008em;
+  }
+  .where{
+    font-family:var(--mono);font-size:12px;color:var(--slate);
+    margin:0 0 11px;letter-spacing:.02em;
+  }
+  .what p{margin:0;color:#3A4247;font-size:.985rem;max-width:62ch}
+
+  /* ---------- work cards ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+  .card{background:var(--paper);padding:26px 24px}
+  .card .tag{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--signal);margin:0 0 11px;
+  }
+  .card h3{font-size:1.02rem;font-weight:600;margin:0 0 9px;letter-spacing:-.008em}
+  .card p{margin:0;font-size:.945rem;color:#3A4247;line-height:1.58}
+
+  /* ---------- stack ---------- */
+  .stack-row{display:grid;grid-template-columns:170px 1fr;gap:28px;padding:15px 0;border-top:1px solid var(--rule)}
+  .stack-row:first-child{border-top:none}
+  .stack-row dt{font-family:var(--mono);font-size:11.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--slate);padding-top:3px}
+  .stack-row dd{margin:0;font-size:.985rem;color:#31383E}
+
+  /* ---------- contact ---------- */
+  .contact{border-bottom:none;padding-bottom:88px}
+  .contact h2{max-width:20ch}
+  .contact .links{margin-top:26px}
+  footer{
+    font-family:var(--mono);font-size:11.5px;color:var(--slate);
+    letter-spacing:.04em;padding:24px 0 40px;border-top:1px solid var(--rule);
+  }
+
+  @media (max-width:720px){
+    .hero-inner{padding:64px 0 56px}
+    .role{grid-template-columns:1fr;gap:9px}
+    .when{padding-top:0}
+    .when b{display:inline;margin-right:8px}
+    .stack-row{grid-template-columns:1fr;gap:6px}
+    section{padding:54px 0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    #net{display:none}
+  }
+</style>
+<style>
+  .doc{max-width:760px;margin:0 auto;padding:52px 28px 90px}
+  .back{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;border:none}
+  .doc h1{font-size:clamp(1.9rem,4.6vw,2.7rem);margin:26px 0 8px;letter-spacing:-.03em}
+  .doc h2{font-family:var(--mono);font-weight:500;font-size:1.25rem;margin:44px 0 12px;
+          padding-top:16px;border-top:1px solid var(--rule);max-width:none}
+  .doc h3{font-family:var(--sans);font-size:1.06rem;font-weight:600;margin:28px 0 8px}
+  .doc h4,.doc h5{font-family:var(--sans);font-size:.98rem;font-weight:600;margin:22px 0 6px;color:var(--slate)}
+  .doc p,.doc li{font-size:1rem;line-height:1.68;color:#31383E}
+  .doc ul{padding-left:20px} .doc li{margin-bottom:5px}
+  .doc pre{background:var(--paper-2);border:1px solid var(--rule);padding:16px 18px;overflow-x:auto;
+           font-family:var(--mono);font-size:12.5px;line-height:1.5;border-radius:2px}
+  .doc code{font-family:var(--mono);font-size:.9em;background:var(--paper-2);padding:1px 4px;border-radius:2px}
+  .doc pre code{background:none;padding:0}
+  .doc table{border-collapse:collapse;width:100%;margin:16px 0;font-size:.94rem}
+  .doc th,.doc td{border:1px solid var(--rule);padding:8px 11px;text-align:left;vertical-align:top}
+  .doc th{background:var(--paper-2);font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase}
+  .meta{font-family:var(--mono);font-size:12px;color:var(--slate);margin:0 0 8px}
+  .note{border-left:2px solid var(--signal);padding:12px 0 12px 16px;margin:26px 0;
+        font-size:.95rem;color:var(--slate);line-height:1.6}
+</style><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[
+    {left:'$$',right:'$$',display:true},
+    {left:'$',right:'$',display:false}],throwOnError:false});"></script>
+</head>
+<body><div class="doc">
+<a class="back" href="/">&larr; Eric Mastro</a>
+<p class="meta" style="margin-top:34px">Protocol design &middot; Logos Storage (formerly Codex) &middot; 2025</p>
+<h1>Recoverability analysis</h1>
+
+<p>The analysis captures the ability of the sales process to recover in cases of crashes, exceptions, or cancellations. The document outlines two phases, both of which are to be implemented after <code>RepoStore</code> reservations have been removed.</p>
+
+<p>TODO: describe Phase I vs Phase II changes</p>
+
+<h2>Phased changes</h2>
+
+<h3>Phase I</h3>
+
+<p>Phase I will include changes to the <a href="https://github.com/codex-storage/codex-research/blob/refactor/simplified-sales-and-purchasing/design/sales2.md">simplification of the Marketplace sales design</a> that do not include <code>SalesOrders</code> or any additional features. In addition, the Marketplace will use expiries and no explicit deletes.</p>
+
+<h4><code>RepoStore</code> changes</h4>
+
+<ul><li>move expiries from block-level to dataset-level</li><li>add dataset-level locks (operations are serially processed)</li><li>possibly add dataset-level ref counts?</li></ul>
+
+<h4>Marketplace callback API changes</h4>
+
+<ul><li>Marketplace calls <code>onStore</code> with a <code>requestId, slotIdx, expiry = request.expiry</code> (and a manifest cid if needed)</li><li>Marketplace calls <code>updateExpiry</code> with <code> requestId, slotIdx</code> (and a manifest cid if needed)</li></ul>
+
+<h3>Phase II</h3>
+
+<p>Marketplace does not use expiries, but uses an explicit delete (locked). Phase II will include the <a href="https://github.com/codex-storage/codex-research/blob/refactor/simplified-sales-and-purchasing/design/sales2.md">simplification of the Marketplace sales design</a> but no additional features.</p>
+
+<h4><code>RepoStore</code> changes</h4>
+
+<p>RepoStore will add support for explicit deletes.</p>
+
+<h4>Marketplace callback API changes</h4>
+
+<ul><li>Marketplace will no longer call <code>updateExpiry</code></li><li>Marketplace calls <code>onStore</code> with a <code>requestId, slotIdx</code> (and a manifest cid if needed)</li><li>Marketplace calls <code>delete</code> with a <code>requestId, slotIdx</code> (and a manifest cid if needed)</li></ul>
+
+<h4><code>onStore</code> considerations</h4>
+
+<p><code>onStore</code> is a long-running operation that may not finish before a request cancellation. If this happens, <code>SaleDownloading.run</code> will be cancelled, which will cancel the <code>onStore</code> call, so <code>onStore</code> will need to handle this exception appropriately.</p>
+
+<h3>Phase III</h3>
+
+<p>Phase III will include <a href="https://github.com/codex-storage/codex-research/blob/refactor/simplified-sales-and-purchasing/design/sales2.md">resumption of local state in the Marketplace</a>.</p>
+
+<h4>Resumable downloads support</h4>
+
+<p>Depends on: <a href="https://github.com/codex-storage/codex-research/blob/refactor/simplified-sales-and-purchasing/design/sales2.md#resuming-local-state-eg-downloading">Marketplace resumption of local state</a></p>
+
+<ul><li><code>onStore</code> will need to internally track the state of building a slot, to allow</li></ul>
+<p>for recovery (Download Manager), remembering to handle cancellations appropriately.</p>
+<ul><li>When the Marketplace restores a local sale to the downloading state, <code>onStore</code></li></ul>
+<p>will be called and it will resume its operation based on the state.</p>
+
+<h3>Phase IV and beyond</h3>
+
+<h4>Marketplace concurrency support</h4>
+
+<p>Depends on: <a href="https://github.com/codex-storage/codex-research/blob/refactor/simplified-sales-and-purchasing/design/sales2.md#concurrent-workers-prevent-unnecessary-resource-consumption">Marketplace support for concurrent workers</a></p>
+
+<ul><li>Avoid waiting for serial operations to finish when there are concurrent</li></ul>
+<p>stores/deletes (due to locking) by implementing a Marketplace-level dataset ref count.</p>
+
+<h2>Phase I: Expiries but no delete</h2>
+
+<p>Identify points in the sales state machine with crashes, exceptions, or cancellations in between, especially with <code>RepoStore</code> writes and expiry updates.</p>
+
+<h3>Preparing</h3>
+
+<pre><code>---
+config:
+  layout: elk
+---
+flowchart LR
+  GetRequestEnd[&quot;Get request end&quot;] --&gt;
+  GetSlotState[&quot;Fetch slot state&quot;] -- Free, Repair --&gt;
+  FindAvailability[&quot;Find availability&quot;] -- Found --&gt;
+  SlotReserving
+
+  GetSlotState -- Other state --&gt; SaleIgnored
+  FindAvailability -- Not found --&gt; SaleIgnored
+
+  GetRequestEnd -- Exception --&gt; SaleErrored
+  GetSlotState -- Exception --&gt; SaleErrored
+  FindAvailability -- Exception --&gt; SaleErrored
+
+  OnCancelled[&quot;Cancelled timer elapsed&quot;] --&gt; SaleCancelled
+  OnFailed[&quot;RequestFailed contract event&quot;] --&gt; SaleFailed</code></pre>
+
+<table>
+<tr><th>Situation</th><th>Outcome</th></tr>
+<tr><td>CRASH at any point</td><td>The slot is forfeited, with no recovery on startup since the slot was not filled.</td></tr>
+<tr><td>EXCEPTION at any point</td><td>The slot is forfeited.</td></tr>
+<tr><td>CANCELLATION during &quot;get request end&quot;, &quot;fetch slot state&quot;, or &quot;find availability&quot;</td><td>The slot is forfeited.</td></tr>
+</table>
+
+<h3>Slot Reserving</h3>
+
+<pre><code>---
+config:
+  layout: elk
+---
+flowchart LR
+  FetchCanReserve[&quot;Fetch canReserveSlot&quot;] -- true --&gt;
+  ReserveSlot[&quot;Reserve slot&quot;] --&gt;
+  SaleDownloading
+  ReserveSlot -- Cannot reserve exception --&gt;
+  SaleIgnored
+  ReserveSlot -- Other exception --&gt; SaleErrored
+
+  FetchCanReserve -- false --&gt; SaleIgnored
+
+  FetchCanReserve -- Exception --&gt; SaleErrored
+
+  OnCancelled[&quot;Cancelled timer elapsed&quot;] --&gt; SaleCancelled
+  OnFailed[&quot;RequestFailed contract event&quot;] --&gt; SaleFailed</code></pre>
+
+<table>
+<tr><th>Situation</th><th>Outcome</th></tr>
+<tr><td>CRASH at any point</td><td>The slot is forfeited, with no recovery on startup since the slot was not filled</td></tr>
+<tr><td>EXCEPTION at any point</td><td>The slot is forfeited.</td></tr>
+<tr><td>CANCELLATION during <code>canReserveSlot</code> or <code>reserveSlot</code></td><td>The slot is forfeited.</td></tr>
+</table>
+
+<h3>Downloading</h3>
+
+<p>It is important to note that the Marketplace does not update the expiry directly. Updating of the dataset expiry is done indirectly via <code>onStore(expiry)</code>. However, consideration of expiration update success is still needed to analyse recoverability.</p>
+
+<pre><code>---
+config:
+  layout: elk
+---
+flowchart LR
+  FetchSlotState[&quot;Fetch slot state&quot;] -- isRepairing --&gt;
+  OnStore[&quot;onStore(isRepairing)&quot;] --&gt;
+  SaleInitialProving
+
+  OnStore -- Exception --&gt; SaleErrored
+  FetchSlotState -- Exception --&gt; SaleErrored
+
+  OnCancelled[&quot;Cancelled timer elapsed&quot;] --&gt; SaleCancelled
+  OnFailed[&quot;RequestFailed contract event&quot;] --&gt; SaleFailed</code></pre>
+
+<table>
+<tr><th>Situation</th><th>Outcome</th></tr>
+<tr><td>No crash/exception in <code>onStore(expiry)</code></td><td>Success</td></tr>
+<tr><td>CRASH before <code>onStore(expiry)</code></td><td>The slot is forfeited, with no recovery on startup since the slot was not filled.</td></tr>
+<tr><td>CRASH in <code>onStore(expiry)</code></td><td>The slot is forfeited, with no recovery on startup since the slot was not filled. The dataset will be eligible for cleanup at the request expiry.</td></tr>
+<tr><td>CRASH after <code>onStore(expiry)</code> but before the transition to <code>SaleInitialProving</code></td><td>The slot is forfeited, with no recovery on startup since the slot was not filled. The dataset will be eligible for cleanup at the request expiry.</td></tr>
+<tr><td>EXCEPTION before <code>onStore(expiry)</code></td><td>Goes to <code>SaleErrored</code>. The slot is forfeited.</td></tr>
+<tr><td>EXCEPTION in <code>onStore(expiry)</code></td><td>Goes to <code>SaleErrored</code>. The slot is forfeited. The dataset will be eligible for cleanup at the request expiry.</td></tr>
+<tr><td>EXCEPTION after <code>onStore(expiry)</code> but before the transition to <code>SaleInitialProving</code></td><td>The slot is forfeited. The dataset will be eligible for cleanup at the request expiry.</td></tr>
+<tr><td>CANCELLATION while fetching slot state</td><td>The slot is forfeited.</td></tr>
+<tr><td>CANCELLATION during <code>onStore</code></td><td>The slot is forfeited. The dataset will be eligible for cleanup at the request expiry.</td></tr>
+</table>
+
+<h3>Initial proving</h3>
+
+<pre><code>---
+config:
+  layout: elk
+---
+flowchart LR
+  WaitForStableChallenge[&quot;Wait for stable challenge&quot;] --&gt;
+  GetChallenge[&quot;Get challenge&quot;] -- challenge --&gt;
+  onProve[&quot;onProve(slot, challenge)&quot;] --&gt;
+  SaleFilling
+
+  WaitForStableChallenge -- Exception --&gt; SaleErrored
+  GetChallenge -- Exception --&gt; SaleErrored
+  onProve -- Exception --&gt; SaleErrored
+
+  OnCancelled[&quot;Cancelled timer elapsed&quot;] --&gt; SaleCancelled
+  OnFailed[&quot;RequestFailed contract event&quot;] --&gt; SaleFailed</code></pre>
+
+<table>
+<tr><th>Situation</th><th>Outcome</th></tr>
+<tr><td>CRASH at any point</td><td>The slot is forfeited.</td></tr>
+<tr><td>EXCEPTION at any point</td><td>Goes to <code>SaleErrored</code>. The slot is forfeited.</td></tr>
+<tr><td>CANCELLATION during &quot;wait for stable challenge&quot;, &quot;get challenge&quot;, or <code>onProve</code></td><td>The slot is forfeited.</td></tr>
+</table>
+
+<h3>Filling</h3>
+
+<pre><code>---
+config:
+  layout: elk
+---
+flowchart LR
+  GetCollateral[&quot;Get collateral to fill slot&quot;] -- collateral --&gt;
+  FillSlot[&quot;fillSlot(collateral)&quot;] --&gt;
+  SaleFilled
+
+  GetCollateral -- Exception --&gt; SaleErrored
+  FillSlot -- Exception --&gt; SaleErrored
+  FillSlot -- Slot is not free (filled by other host) --&gt; SaleIgnored
+
+  OnCancelled[&quot;Cancelled timer elapsed&quot;] --&gt; SaleCancelled
+  OnFailed[&quot;RequestFailed contract event&quot;] --&gt; SaleFailed</code></pre>
+
+<table>
+<tr><th>Situation</th><th>Outcome</th><th>Solution</th></tr>
+<tr><td><code>fillSlot(collateral)</code> successful</td><td>SUCCESS</td><td></td></tr>
+<tr><td>CRASH before <code>fillSlot(collateral)</code> completes</td><td>The slot is forfeited, with no recovery on startup since the slot was not filled. On restart, the dataset will be eligible for cleanup by the maintainer on request expiry.</td><td></td></tr>
+<tr><td>CRASH before state transitions to <code>SaleFilled</code></td><td>On chain state is restored at startup, starting in the <code>SaleFilled</code> state, which extends the expiry. Since the expiry wasn&#x27;t extended before the crash, the dataset is at risk of being cleanup by the maintainer. This requires the maintenance module to wait for state restoration to complete.</td><td></td></tr>
+<tr><td>EXCEPTION during <code>fillSlot(collateral)</code></td><td>Goes to <code>SaleErrored</code>. The slot is forfeited. The dataset will be eligible for cleanup by the maintainer on request expiry.</td><td>For network errors, check the slot state as it may have been filled. Implement retry functionality, with exponential backoff.</td></tr>
+<tr><td>EXCEPTION before state transitions to <code>SaleFilled</code></td><td>No recovery options here. Since the slot is already filled, the SP is required to provide proofs and will likely be slashed for missing proofs.</td><td>This would be an exception raised in the state machine, but not in the <code>SaleFilling</code> state. Because the state machine itself does not raise any exceptions, this is unlikely.</td></tr>
+<tr><td>CANCELLATION during &quot;get collateral to fill slot&quot;</td><td>The slot is forfeited. The dataset will be eligible for cleanup by the maintainer on request expiry.</td><td></td></tr>
+<tr><td>CANCELLATION during <code>fillSlot</code></td><td>If the slot had not been filled on chain, the slot is forfeited and the dataset will be eligible for cleanup by the maintainer on request expiry. However, if the slot was filled on chain, then there are no recovery options and the SP will likely miss required storage proofs, leading to slashing(s).</td><td>Possible options include:&lt;br&gt;1. Catch cancellation, check slot state. If slot is filled, raise a Defect, crashing the node and forcing a restart. On startup, slot will enter the <code>SaleFilled</code> state.&lt;br&gt;2. Log an error and increment a metric counter.&lt;br&gt;3. Do not propagate the cancellation. The sale will move to the <code>SaleFilled</code> state. Waiters (eg <code>cancelAndWait</code> may wait indefinitely).</td></tr>
+</table>
+
+<h3>Filled</h3>
+
+<pre><code>---
+config:
+  layout: elk
+---
+flowchart LR
+  GetSlotHost[&quot;Get slot host&quot;] -- Slot filled by me --&gt;
+  GetRequestEnd[&quot;Get request end&quot;] -- requestEnd --&gt;
+  UpdateExpiry[&quot;Update dataset expiry:&lt;br&gt;onExpiryUpdate(requestEnd)&quot;] --&gt;
+  SaleProving
+
+  GetSlotHost -- Exception --&gt; SaleErrored
+  GetRequestEnd -- Exception --&gt; SaleErrored
+  UpdateExpiry -- Exception --&gt; SaleErrored
+  GetSlotHost -- Slot filled by other host --&gt; SaleErrored
+
+  OnCancelled[&quot;Cancelled timer elapsed&quot;] --&gt; SaleCancelled
+  OnFailed[&quot;RequestFailed contract event&quot;] --&gt; SaleFailed</code></pre>
+
+<table>
+<tr><th>Situation</th><th>Outcome</th><th>Solution</th></tr>
+<tr><td>Dataset expiry updated to <code>requestEnd</code></td><td>SUCCESS</td><td></td></tr>
+<tr><td>CRASH before <code>onExpiryUpdate(requestEnd)</code> completes</td><td>On chain state is restored at startup, starting in the <code>SaleFilled</code> state, which extends the expiry. Since the expiry wasn&#x27;t completely extended before the crash, the dataset is at risk of being cleanup by the maintainer.</td><td>This requires the maintenance module to wait for state restoration to complete.</td></tr>
+<tr><td>CRASH before transition to <code>SaleProving</code> state</td><td>On chain state is restored at startup, starting in the <code>SaleFilled</code> state, which extends the expiry, then moves to <code>SaleProving</code>. Dataset is not a risk of getting cleaned up since its expiry was updated.</td><td></td></tr>
+<tr><td>EXCEPTION during &quot;get slot host&quot; or &quot;get request end&quot; (ie a network-level failure)</td><td>Goes to <code>SaleErrored</code>. No recovery options. SP will not submit proofs when required and will eventually be slashed.</td><td>For network exceptions, implement retry functionality, with exponential backoff. For other exceptions, go to <code>SaleErrored</code>. Exceptions may include any errors resulting from the JSON RPC call, or errors originating in ethers.</td></tr>
+<tr><td>EXCEPTION during <code>onExpiryUpdate</code></td><td>Goes to <code>SaleErrored</code>. No recovery options. SP will not submit proofs when required and will eventually be slashed.</td><td>Possible options include:&lt;br&gt;1. Raise a Defect, crashing the node and forcing a restart. On startup, slot will enter the <code>SaleFilled</code> state and will retry expiry update. May create an infinite crashing loop.&lt;br&gt;2. Log an error and increment a metric counter.&lt;br&gt;3. Continue to the <code>SaleProving</code> state. Dataset will be eligible for cleanup after request expiry, potentially causing slashings.</td></tr>
+<tr><td>CANCELLATION during &quot;get slot host&quot;, &quot;get request end&quot;</td><td>Goes to <code>SaleErrored</code>. No recovery options. SP will not submit proofs when required and will be at risk of being slashed.</td><td>Possible options include:&lt;br&gt;1. Raise a Defect, crashing the node and forcing a restart. On startup, slot will enter the <code>SaleFilled</code> state.&lt;br&gt;2. Log an error and increment a metric counter.&lt;br&gt;2. Do not propagate the cancellation. The sale will move to the <code>SaleProving</code> state. Waiters (eg <code>cancelAndWait</code> may wait indefinitely).</td></tr>
+</table>
+
+<h3>Proving</h3>
+
+<pre><code>---
+config:
+  layout: elk
+---
+flowchart TB
+  GetCurrentPeriod[&quot;Get current period&quot;] --&gt;
+  GetSlotState[&quot;Get slot state&quot;] -- Filled, proof required --&gt;
+  GenProof[&quot;Generate proof: onProve&quot;] -- proof --&gt;
+  SubmitProof[&quot;submitProof(proof)&quot;] --&gt;
+  WaitUntilNextPeriod[&quot;Wait until start of&lt;br&gt;next period&quot;] --&gt;
+  GetCurrentPeriod
+
+  GetSlotState -- Filled, proof not required --&gt; WaitUntilNextPeriod
+  GetSlotState -- Cancelled --&gt; WaitForCancelled[&quot;Do nothing, wait for&lt;br&gt;elapsed cancelled timer&quot;] --&gt; WaitUntilNextPeriod
+  GetSlotState -- Repair --&gt; SaleErrored
+  GetSlotState -- Failed --&gt; WaitForFailed[&quot;Do nothing, wait for&lt;br&gt;RequestFailed contract&lt;br&gt;event&quot;] --&gt; WaitUntilNextPeriod
+  GetSlotState -- Finished --&gt; SalePayout
+  GetSlotState -- Free, Paid --&gt; SaleErrored
+
+  OnCancelled[&quot;Cancelled timer elapsed&quot;] --&gt; SaleCancelled
+  OnFailed[&quot;RequestFailed contract event&quot;] --&gt; SaleFailed
+
+  GenProof -- Exception --&gt; WaitUntilNextPeriod
+  SubmitProof -- Exception --&gt; WaitUntilNextPeriod
+  GetCurrentPeriod -- Exception --&gt; SaleErrored
+  GetSlotState -- Exception --&gt; SaleErrored
+  GetSlotState -- Filled, exception getting&lt;br&gt;proof requirement&lt;br&gt;or challenge --&gt; SaleErrored
+  WaitUntilNextPeriod -- Exception --&gt; SaleErrored</code></pre>
+
+<table>
+<tr><th>Situation</th><th>Outcome</th><th>Solution</th></tr>
+<tr><td>CRASH at any point</td><td>On chain state is restored at startup, starting in <code>SaleFilled</code> state which extends the expiry to request end (no op), then moves back to <code>SaleProving</code>.</td><td></td></tr>
+<tr><td>EXCEPTION during <code>getSlotState</code>, <code>waitForNextPeriod</code>, <code>getCurrentPeriod</code>, or <code>getChallenge</code></td><td>Goes to <code>SaleErrored</code>, all proving is stopped and SP becomes at risk of being slashed.</td><td>For network exceptions, implement retry functionality, with exponential backoff. For other exceptions, go to <code>SaleErrored</code>. Exceptions may include any errors resulting from the JSON RPC call, or errors originating in ethers.</td></tr>
+<tr><td>CANCELLATION during <code>getSlotState</code>, <code>waitForNextPeriod</code>, <code>getCurrentPeriod</code>, or <code>getChallenge</code></td><td>Goes to <code>SaleErrored</code>, all proving is stopped and SP becomes at risk of being slashed.</td><td>Possible options include:&lt;br&gt;1. Raise a Defect, crashing the node and forcing a restart. On startup, slot will enter the <code>SaleFilled</code> state, then move to <code>SaleProving</code>.&lt;br&gt;2. Log an error and increment a metric counter.&lt;br&gt;2. Do not propagate the cancellation. The sale will continue in the <code>SaleProving</code> state. Waiters (eg <code>cancelAndWait</code> may wait indefinitely).</td></tr>
+</table>
+
+<h3>Payout</h3>
+
+<pre><code>---
+config:
+  layout: elk
+---
+flowchart LR
+  freeSlot --&gt;
+  SaleFinished
+
+  freeSlot -- Exception --&gt; SaleErrored
+
+  OnCancelled[&quot;Cancelled timer elapsed&quot;] --&gt; SaleCancelled
+  OnFailed[&quot;RequestFailed contract event&quot;] --&gt; SaleFailed</code></pre>
+
+<table>
+<tr><th>Situation</th><th>Outcome</th><th>Solution</th></tr>
+<tr><td><code>freeSlot</code> is successful</td><td>SUCCESS</td><td></td></tr>
+<tr><td>CRASH before <code>freeSlot</code> completes</td><td>On chain state is restored at startup, starting in <code>SalePayout</code>, where <code>freeSlot</code> will be tried again.</td><td></td></tr>
+<tr><td>CRASH after <code>freeSlot</code> completes</td><td>Slot is no longer part of <code>mySlots</code>, so on startup, slot state will not be restored.</td><td></td></tr>
+<tr><td>EXCEPTION during <code>freeSlot</code></td><td>Goes to <code>SaleErrored</code>. If <code>freeSlot</code> succeeded before the exception, no clean up routines will be performed. If <code>freeSlot</code> did not succeed before the exception, no funds will have been paid out and there are no recovery options.</td><td>For network exceptions, implement retry functionality with exponential backoff.</td></tr>
+<tr><td>CANCELLATION during <code>freeSlot</code></td><td>Goes to <code>SaleErrored</code>. If <code>freeSlot</code> succeeded before the cancellation, no clean up routines will be performed. If <code>freeSlot</code> did not succeed before the cancellation, no funds will have been paid out and there are no recovery options.</td><td></td></tr>
+</table>
+
+<h3>Finished</h3>
+
+<pre><code>---
+config:
+  layout: elk
+---
+flowchart LR
+  onClear --&gt;
+  onCleanUp
+
+  onClear -- Exception --&gt; SaleErrored
+  onCleanUp -- Exception --&gt; SaleErrored
+
+  OnCancelled[&quot;Cancelled timer elapsed&quot;] --&gt; SaleCancelled
+  OnFailed[&quot;RequestFailed contract event&quot;] --&gt; SaleFailed</code></pre>
+
+<table>
+<tr><th>Situation</th><th>Outcome</th></tr>
+<tr><td><code>onClear</code> and <code>onCleanUp</code> is successful</td><td>SUCCESS</td></tr>
+<tr><td>CRASH before <code>onCleanUp</code> completes</td><td>On restart, slot will have been removed from <code>mySlot</code>, so nothing should happen. Anything missed in <code>onCleanUp</code> will not be recoverable.</td></tr>
+<tr><td>EXCEPTION during <code>onCleanUp</code></td><td>Goes to <code>SaleErrored</code>. Since <code>onCleanUp</code> cleans up <code>SalesAgents</code>, there could be a memory leak.</td></tr>
+<tr><td>CANCELLATION during <code>onCleanUp</code></td><td>Since <code>onCleanUp</code> cleans up <code>SalesAgents</code>, there could be a memory leak.</td></tr>
+</table>
+
+<h2>Phase II: No expiries but deletes</h2>
+
+<p>Depends on: <code>SalesOrder</code> &quot;baseline&quot; design implementation.</p>
+
+<p>Identify points of <code>SalesOrder</code> updates and <code>RepoStore</code> writes, with crashes, exceptions, or cancellations in between.</p>
+
+<h3>Downloading</h3>
+
+<pre><code>---
+config:
+  layout: elk
+---
+flowchart LR
+  FetchSlotState[&quot;Fetch slot state&quot;] -- isRepairing --&gt;
+  CreateSalesOrder[&quot;Create SalesOrder&quot;] --&gt;
+  OnStore[&quot;onStore(isRepairing)&quot;] --&gt;
+  SaleInitialProving
+
+  OnStore -- Exception --&gt; SaleErrored
+  FetchSlotState -- Exception --&gt; SaleErrored
+  CreateSalesOrder -- Exception --&gt; SaleErrored
+
+  OnCancelled[&quot;Cancelled timer elapsed&quot;] --&gt; SaleCancelled
+  OnFailed[&quot;RequestFailed contract event&quot;] --&gt; SaleFailed</code></pre>
+
+<table>
+<tr><th>Situation</th><th>Outcome</th></tr>
+<tr><td>No crash/exception in <code>onStore(expiry)</code></td><td>Success</td></tr>
+<tr><td>CRASH before create <code>SalesOrder</code></td><td>The slot is forfeited, with no recovery on startup since the slot was not filled.</td></tr>
+<tr><td>CRASH before <code>onStore(expiry)</code></td><td>The slot is forfeited, with no recovery on startup since the slot was not filled. On restart, the <code>SalesOrder</code> will be archived.</td></tr>
+<tr><td>CRASH in <code>onStore(expiry)</code></td><td>The slot is forfeited, with no recovery on startup since the slot was not filled. On restart, the dataset will be cleaned up (corrective cleanup) and the <code>SalesOrder</code> archived.</td></tr>
+<tr><td>CRASH after <code>onStore(expiry)</code> but before the transition to <code>SaleInitialProving</code></td><td>The slot is forfeited, with no recovery on startup since the slot was not filled. On restart, the dataset will be cleaned up (corrective cleanup) and the <code>SalesOrder</code> archived.</td></tr>
+<tr><td>EXCEPTION before create <code>SalesOrder</code></td><td>Goes to <code>SaleErrored</code>. The slot is forfeited.</td></tr>
+<tr><td>EXCEPTION before <code>onStore(expiry)</code></td><td>Goes to <code>SaleErrored</code>. The slot is forfeited. The <code>SalesOrder</code> will be archived.</td></tr>
+<tr><td>EXCEPTION in <code>onStore(expiry)</code></td><td>Goes to <code>SaleErrored</code>. The slot is forfeited. The dataset will be cleaned up (active cleanup) and the <code>SalesOrder</code> archived.</td></tr>
+<tr><td>EXCEPTION after <code>onStore(expiry)</code> but before the transition to <code>SaleInitialProving</code></td><td>The slot is forfeited. The dataset will be cleaned up (active cleanup) and the <code>SalesOrder</code> archived.</td></tr>
+<tr><td>CANCELLATION while fetching slot state</td><td>The slot is forfeited.</td></tr>
+<tr><td>CANCELLATION during <code>onStore</code></td><td>The slot is forfeited. The dataset will be cleaned up (active cleanup) and the <code>SalesOrder</code> archived.</td></tr>
+</table>
+
+
+<p><code>SalesOrders</code> are created in the downloading state before any data is written to disk.</p>
+
+<ol><li>[DOWNLOADING] <code>SalesOrder</code> is created -&gt; data downloaded in <code>onStore</code>: SUCCESS</li><li>[DOWNLOADING] CRASH -&gt; <code>SalesOrder</code> is created -&gt; data downloaded in <code>onStore</code>:</li></ol>
+<p>SUCCESS</p>
+
+<ul><li>There are no asynchronicities here since there was no <code>SalesOrder</code> created</li></ul>
+<p>and no blocks downloaded</p>
+
+<ol><li>[DOWNLOADING] <code>SalesOrder</code> is created -&gt; CRASH -&gt; data downloaded in <code>onStore</code></li></ol>
+
+<ul><li>Without local state restoration:</li><li>On restart, corrective cleanup will delete the dataset (which doesn&#x27;t</li></ul>
+<p>exist) and the slot will be forfeited.</p>
+<ul><li>With local state restoration:</li><li>On restart, the state will be restored before corrective cleanup deletes</li></ul>
+<p>any datasets</p>
+
+<ol><li>[DOWNLOADING] <code>SalesOrder</code> is created -&gt; CRASH while data downloading in</li></ol>
+<p><code>onStore</code></p>
+
+<h3>Deleting</h3>
+
+<p>Deletes can occur at any final state of the state machine: failed, finished, errored, cancelled. <code>SalesOrders</code> are archived only after the dataset is deleted. [FAILED] Dataset deleted -&gt; <code>SalesOrder</code> archived: SUCCESS [FAILED] Dataset deleted -&gt; CRASH -&gt; <code>SalesOrder</code> archived</p>
+
+<ul><li>The <code>SalesOrder</code> remains in the &quot;active&quot; state and thus on restart, the</li></ul>
+<p>corrective cleanup is run, deleting the dataset (which is already deleted) and finally archiving the <code>SalesOrder</code>. [FAILED] Dataset deleted -&gt; <code>SalesOrder</code> archived -&gt; CRASH: SUCCESS</p>
+
+
+<p>If the node goes down and corrupts the  (eg power failure) in mid-write of the RepoStore a</p>
+<div class="note">Written while leading the marketplace team at Codex. Storage provider nodes run unattended on hardware nobody controls, so every state in the sales machine had to have a defined outcome under power loss, process crash, asynchronous exception and cancellation. Remediation was phased across four releases rather than attempted at once, and the findings ultimately drove the redesigned sales and purchasing architecture.</div>
+<p style="margin-top:36px"><a class="back" href="/">&larr; Back</a> &nbsp;
+<a class="back" href="/how-i-work">How I work &rarr;</a> &nbsp;
+<a class="back" href="/marketplace-state-restoration">Gas analysis &rarr;</a> &nbsp;
+<a class="back" href="/slot-reservations">Slot reservations &rarr;</a></p>
+</div></body></html>
