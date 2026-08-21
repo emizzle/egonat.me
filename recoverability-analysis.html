@@ -3,7 +3,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231B4D7A%27/%3E%3Ctext x=%2732%27 y=%2744%27 font-family=%27ui-monospace,monospace%27 font-size=%2734%27 font-weight=%27600%27 fill=%27%23FBFAF7%27 text-anchor=%27middle%27%3E%7B%7D%3C/text%3E%3C/svg%3E">
 <title>Recoverability analysis &middot; Eric Mastro</title>
-<meta name="description" content="Per-state analysis of crash, exception and cancellation outcomes across a distributed sales state machine, with remediation phased across four releases.">
+<meta property="og:title" content="Recoverability analysis · Eric Mastro">
+<meta property="og:description" content="Per-state analysis of crash, exception and cancellation outcomes across a distributed sales state machine, with remediation phased across four releases.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://egonat.me/recoverability-analysis">
+<meta property="og:image" content="https://egonat.me/og/og-recoverability-analysis.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -567,4 +574,98 @@ flowchart LR
 <a class="back" href="/how-i-work">How I work &rarr;</a> &nbsp;
 <a class="back" href="/marketplace-state-restoration">Gas analysis &rarr;</a> &nbsp;
 <a class="back" href="/slot-reservations">Slot reservations &rarr;</a></p>
-</div></body></html>
+</div>
+<style>
+  .mermaid{
+    background:transparent;
+    margin:26px 0;
+    overflow-x:auto;
+    text-align:center;
+  }
+  .mermaid svg{max-width:100%;height:auto}
+  .mermaid-failed{
+    border-left:2px solid var(--signal);
+    padding-left:14px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--slate);
+  }
+</style>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+  // Diagram keywords we are willing to render.
+  const KEYWORDS = /^(flowchart|graph|sequenceDiagram|stateDiagram(-v2)?|classDiagram|erDiagram|journey|gantt|pie|mindmap|timeline)\b/;
+
+  // A block qualifies if, after any --- frontmatter, the first line is a diagram keyword.
+  function diagramSource(text) {
+    let body = text.trim();
+    let frontmatter = '';
+    if (body.startsWith('---')) {
+      const end = body.indexOf('---', 3);
+      if (end === -1) return null;
+      frontmatter = body.slice(0, end + 3);
+      body = body.slice(end + 3).trim();
+    }
+    const first = body.split('\n').find(l => l.trim() !== '') || '';
+    if (!KEYWORDS.test(first.trim())) return null;
+    return { frontmatter, body };
+  }
+
+  const blocks = [];
+  document.querySelectorAll('pre > code, pre').forEach(el => {
+    if (el.tagName === 'PRE' && el.querySelector('code')) return;  // handled via the code child
+    const parsed = diagramSource(el.textContent || '');
+    if (!parsed) return;
+    const pre = el.tagName === 'PRE' ? el : el.parentElement;
+    blocks.push({ pre, parsed });
+  });
+
+  if (blocks.length) {
+    // ELK gives the wide left-to-right layouts these diagrams were written for.
+    let haveElk = false;
+    try {
+      const elk = await import('https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.7/dist/mermaid-layout-elk.esm.min.mjs');
+      mermaid.registerLayoutLoaders(elk.default);
+      haveElk = true;
+    } catch (e) {
+      console.warn('ELK layout unavailable, falling back to default layout');
+    }
+
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'strict',
+      fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
+      themeVariables: {
+        background:        '#FBFAF7',
+        primaryColor:      '#F2F0EA',
+        primaryTextColor:  '#21262B',
+        primaryBorderColor:'#1B4D7A',
+        lineColor:         '#5C666E',
+        secondaryColor:    '#FBFAF7',
+        tertiaryColor:     '#F2F0EA',
+        fontSize:          '14px',
+      },
+    });
+
+    blocks.forEach(({ pre, parsed }, i) => {
+      const div = document.createElement('div');
+      div.className = 'mermaid';
+      div.id = 'mmd-' + i;
+      // Drop the frontmatter if ELK is not available, otherwise mermaid errors on it.
+      div.textContent = haveElk
+        ? (parsed.frontmatter ? parsed.frontmatter + '\n' + parsed.body : parsed.body)
+        : parsed.body;
+      pre.replaceWith(div);
+    });
+
+    try {
+      await mermaid.run({ querySelector: '.mermaid' });
+    } catch (e) {
+      console.error('Mermaid render failed', e);
+      document.querySelectorAll('.mermaid').forEach(d => d.classList.add('mermaid-failed'));
+    }
+  }
+</script>
+</body></html>
