@@ -1,0 +1,97 @@
+name: Link Checker
+
+on:
+  schedule:
+    - cron: "0 0 * * 0"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  check-links:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure label exists
+        run: |
+          if ! gh label list | grep -q "broken-links"; then
+            gh label create "broken-links" --description "Broken link reports" --color "E99695"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract and check links
+        id: links
+        run: |
+          TMPFILE=$(mktemp)
+          # Find all .md and .html files, extract URLs
+          grep -rhoP 'https?://[^\s\)"\x27\>\<]+' --include='*.md' --include='*.html' . | \
+            sed 's/[),.]$//' | \
+            sort -u > "$TMPFILE"
+
+          TOTAL=$(wc -l < "$TMPFILE" | tr -d ' ')
+          BROKEN_COUNT=0
+          RESULTS=""
+
+          while IFS= read -r url; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 -L "$url" 2>/dev/null || echo "000")
+            if [ "$CODE" = "000" ] || [ "$CODE" -ge 400 ] 2>/dev/null; then
+              BROKEN_COUNT=$((BROKEN_COUNT + 1))
+              # Find which files contain this URL
+              FILES=$(grep -rl "$url" --include='*.md' --include='*.html' . | sed 's|^\./||' | tr '\n' ', ' | sed 's/,$//')
+              RESULTS="${RESULTS}\n- \`${url}\` — HTTP ${CODE} (found in: ${FILES})"
+            fi
+          done < "$TMPFILE"
+
+          echo "total_checked=$TOTAL" >> "$GITHUB_OUTPUT"
+          echo "broken_count=$BROKEN_COUNT" >> "$GITHUB_OUTPUT"
+          {
+            echo "broken_results<<EOF"
+            echo -e "$RESULTS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          rm "$TMPFILE"
+
+      - name: Close issue if no broken links
+        if: steps.links.outputs.broken_count == '0'
+        run: |
+          ISSUES=$(gh issue list --label "broken-links" --state open --json number --jq '.[].number')
+          for ISSUE in $ISSUES; do
+            gh issue close "$ISSUE" --comment "✅ All links are healthy. Closing this issue."
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Open or update issue with broken links
+        if: steps.links.outputs.broken_count != '0'
+        run: |
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          COUNT="${{ steps.links.outputs.broken_count }}"
+          TOTAL="${{ steps.links.outputs.total_checked }}"
+          RESULTS="${{ steps.links.outputs.broken_results }}"
+          EXISTING=$(gh issue list --label "broken-links" --state open --json number --jq '.[0].number // empty')
+
+          BODY="## Broken Link Report
+
+          **Checked:** ${NOW}
+          **Total links scanned:** ${TOTAL}
+          **Broken links found:** ${COUNT}
+
+          ### Broken Links
+          ${RESULTS}"
+
+          if [ -n "$EXISTING" ]; then
+            gh issue edit "$EXISTING" --title "Broken links found (${COUNT})" --body "$BODY"
+          else
+            gh issue create \
+              --title "Broken links found (${COUNT})" \
+              --label "broken-links" \
+              --body "$BODY"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

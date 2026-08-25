@@ -1,0 +1,84 @@
+name: Uptime Monitor
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  check-uptime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure label exists
+        run: |
+          if ! gh label list | grep -q "site-monitor"; then
+            gh label create "site-monitor" --description "Automated uptime monitoring" --color "D93F0B"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check site status
+        id: check
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://egonat.me || echo "000")
+          echo "status_code=$HTTP_CODE" >> "$GITHUB_OUTPUT"
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "is_up=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_up=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Close open issues if site is up
+        if: steps.check.outputs.is_up == 'true'
+        run: |
+          ISSUES=$(gh issue list --label "site-monitor" --state open --json number --jq '.[].number')
+          for ISSUE in $ISSUES; do
+            gh issue close "$ISSUE" --comment "✅ egonat.me is back up and responding with HTTP 200. Monitoring resumed."
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Open or update issue if site is down
+        if: steps.check.outputs.is_up == 'false'
+        run: |
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          CODE="${{ steps.check.outputs.status_code }}"
+          EXISTING=$(gh issue list --label "site-monitor" --state open --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            BODY=$(gh issue view "$EXISTING" --json body --jq '.body')
+            START=$(echo "$BODY" | grep -oP '(?<=\*\*Started:\*\* )\S+' || echo "")
+            if [ -z "$START" ]; then
+              START="$NOW"
+            fi
+            START_EPOCH=$(date -d "$START" +%s 2>/dev/null || echo "")
+            NOW_EPOCH=$(date -d "$NOW" +%s)
+            if [ -n "$START_EPOCH" ]; then
+              DIFF=$(( NOW_EPOCH - START_EPOCH ))
+              HOURS=$(( DIFF / 3600 ))
+              MINS=$(( (DIFF % 3600) / 60 ))
+              DURATION="${HOURS}h ${MINS}m"
+            else
+              DURATION="unknown"
+            fi
+            gh issue edit "$EXISTING" --body "**Site:** egonat.me
+          **Status:** HTTP ${CODE}
+          **Started:** ${START}
+          **Duration:** ${DURATION}
+          **Last checked:** ${NOW}"
+            gh issue comment "$EXISTING" --body "⚠️ Still down — HTTP ${CODE} at ${NOW} (duration: ${DURATION})"
+          else
+            gh issue create \
+              --title "egonat.me is DOWN" \
+              --label "site-monitor" \
+              --body "**Site:** egonat.me
+          **Status:** HTTP ${CODE}
+          **Started:** ${NOW}
+          **Duration:** 0h 0m
+          **Last checked:** ${NOW}"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
