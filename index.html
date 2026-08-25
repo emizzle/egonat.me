@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231B4D7A%27/%3E%3Ctext x=%2732%27 y=%2744%27 font-family=%27ui-monospace,monospace%27 font-size=%2734%27 font-weight=%27600%27 fill=%27%23FBFAF7%27 text-anchor=%27middle%27%3E%7B%7D%3C/text%3E%3C/svg%3E">
-<title>Eric Mastro, Distributed Systems Engineer</title>
-<meta property="og:title" content="Eric Mastro, Distributed Systems Engineer">
+<title>Eric Mastro, Senior Engineering Lead</title>
+<meta property="og:title" content="Eric Mastro, Senior Engineering Lead">
 <meta property="og:description" content="Protocol internals, on-chain markets, and the tooling in between. Nineteen years in systems software.">
 <meta name="description" content="Protocol internals, on-chain markets, and the tooling in between. Nineteen years in systems software.">
 <meta property="og:site_name" content="Eric Mastro">
@@ -209,17 +209,17 @@
       <div class="card">
         <p class="tag">Mechanism design</p>
         <h3>Slot reservations</h3>
-        <p>Uncapped competition meant many providers downloading the same content for a single payout, and a lucrative request could DDoS the client that posted it. Capping reservations fixed both. Shipped, with an adversarial analysis covering six named attacker classes and a written record of every mechanism rejected along the way. <a href="/slot-reservations">Read the design &rarr;</a></p>
+        <p>Uncapped competition meant many providers downloading the same content for a lucrative storage request could DDoS the client that created it, and potentially centralise storage hosting to the most resourced providers (eg data centers). Slot reservations fixed this by first capping the number of competing providers and second by using the value of a transaction to signal intent. Designing this feature included an adversarial analysis covering six named attacker classes and a written record of every mechanism that did not make the cut. <a href="/slot-reservations">Read the design &rarr;</a></p>
       </div>
       <div class="card">
         <p class="tag">Protocol design</p>
         <h3>On-chain marketplace</h3>
-        <p>A storage market where strangers pay strangers to keep data alive: threat modelling and mitigation, incentive and collateral design, then planning, implementation, testing and exploit preparedness. Includes the <a href="https://lip.logos.co/storage/deprecated/codex-marketplace.html">published protocol specification</a> and a <a href="https://github.com/logos-storage/logos-storage-research">public research repository</a>. Also: a <a href="/recoverability-analysis">per-state recoverability analysis</a> giving every state in the sales machine a defined outcome under crash, power loss and asynchronous cancellation.</p>
+        <p>An on-chain storage market where clients pay providers to store data durably: threat modelling and mitigation, incentive and collateral design, then planning, implementation, <a href="https://lip.logos.co/storage/deprecated/codex-marketplace.html">spec writing</a>, testing and exploit preparedness. At the heart of the client-side implementation was a sales state machine. After log crawling the devnet and noticing issues, I put together a <a href="/recoverability-analysis">per-state recoverability analysis</a> giving every state in the sales machine a defined outcome under crash, power loss and asynchronous cancellation.</p>
       </div>
       <div class="card">
         <p class="tag">Gas economics</p>
         <h3>10&times; cheaper state restoration</h3>
-        <p>Two competing on-chain designs, built and benchmarked rather than argued about. Worst-case slot-freeing fell from 3,115,596 to 302,584 gas. The report priced the difference in euros at live rates and ended the debate. <a href="/marketplace-state-restoration">Read the analysis &rarr;</a></p>
+        <p>Two contract data structures to store storage request state were benchmarked for their gas efficiency. The Worst-case slot-freeing fell from 3,115,596 to 302,584 gas. The report priced the difference in euros at live rates and ended the debate. <a href="/marketplace-state-restoration">Read the analysis &rarr;</a></p>
       </div>
       <div class="card">
         <p class="tag">Project leadership</p>
