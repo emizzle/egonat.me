@@ -18,18 +18,18 @@ jobs:
       - name: Import GPG key
         run: |
           mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
-          cat > ~/.gnupg/gpg.conf << EOF
-          pinentry-mode loopback
-          passphrase "$GPG_PASSPHRASE"
-          use-agent
-          EOF
-          chmod 600 ~/.gnupg/gpg.conf
           gpg --batch --import <<< "$GPG_PRIVATE_KEY"
           SIGNING_KEY=$(gpg --list-secret-keys --keyid-format long | grep sec | head -1 | awk '{print $2}' | cut -d'/' -f2)
+          cat > ~/gpg-wrapper.sh << WRAPPER
+#!/bin/bash
+exec gpg --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" "\$@"
+WRAPPER
+          chmod +x ~/gpg-wrapper.sh
           git config user.name "github-actions[bot]"
           git config user.email "41898282@users.noreply.github.com"
           git config commit.gpgsign true
           git config user.signingkey "$SIGNING_KEY"
+          git config gpg.program ~/gpg-wrapper.sh
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
