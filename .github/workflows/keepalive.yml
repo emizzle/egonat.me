@@ -20,10 +20,7 @@ jobs:
           mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
           gpg --batch --import <<< "$GPG_PRIVATE_KEY"
           SIGNING_KEY=$(gpg --list-secret-keys --keyid-format long | grep sec | head -1 | awk '{print $2}' | cut -d'/' -f2)
-          cat > ~/gpg-wrapper.sh << WRAPPER
-#!/bin/bash
-exec gpg --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" "\$@"
-WRAPPER
+          printf '#!/bin/bash\nexec gpg --pinentry-mode loopback --passphrase %s "\\$@"\n' "$GPG_PASSPHRASE" > ~/gpg-wrapper.sh
           chmod +x ~/gpg-wrapper.sh
           git config user.name "github-actions[bot]"
           git config user.email "41898282@users.noreply.github.com"
