@@ -29,8 +29,11 @@ jobs:
         id: links
         run: |
           TMPFILE=$(mktemp)
-          # Find all .md and .html files, extract URLs
-          grep -rhoP 'https?://[^\s\)"\x27\>\<]+' --include='*.md' --include='*.html' . | \
+          # Extract URLs from href and src attributes only (skip data: URIs)
+          # Also skip rel="preconnect" and rel="preload" lines
+          grep -rn --include='*.md' --include='*.html' -E 'href="https?://|src="https?://' . | \
+            grep -v 'rel="preconnect"\|rel="preload"' | \
+            grep -hoP 'https?://[^"\s<>]+' | \
             sed 's/[),.]$//' | \
             sort -u > "$TMPFILE"
 
@@ -42,9 +45,13 @@ jobs:
             CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 -L "$url" 2>/dev/null || echo "000")
             if [ "$CODE" = "000" ] || [ "$CODE" -ge 400 ] 2>/dev/null; then
               BROKEN_COUNT=$((BROKEN_COUNT + 1))
-              # Find which files contain this URL
-              FILES=$(grep -rl "$url" --include='*.md' --include='*.html' . | sed 's|^\./||' | tr '\n' ', ' | sed 's/,$//')
-              RESULTS="${RESULTS}\n- \`${url}\` — HTTP ${CODE} (found in: ${FILES})"
+              # Find which files and line numbers contain this URL
+              LOCATIONS=$(grep -rn --include='*.md' --include='*.html' -F "$url" . | \
+                sed 's/^\.\///' | \
+                sort -t: -k1,1 -k2,2n -u | \
+                sed 's/^\([^:]*\):\([0-9]*\)$/\1:\2/' | \
+                paste -sd ', ')
+              RESULTS="${RESULTS}\n- \`${url}\` — HTTP ${CODE} (found in: ${LOCATIONS})"
             fi
           done < "$TMPFILE"
 
