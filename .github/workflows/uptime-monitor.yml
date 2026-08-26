@@ -12,6 +12,9 @@ jobs:
   check-uptime:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
       - name: Ensure label exists
         run: |
           if ! gh label list | grep -q "site-monitor"; then
