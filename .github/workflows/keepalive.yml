@@ -17,17 +17,17 @@ jobs:
 
       - name: Import GPG key
         run: |
-          mkdir -p ~/.gnupg
-          cat > ~/.gnupg/gpg.conf <<EOF
+          mkdir -p ~/.gnupg && chmod 700 ~/.gnupg
+          cat > ~/.gnupg/gpg.conf << EOF
           pinentry-mode loopback
           passphrase "$GPG_PASSPHRASE"
           use-agent
           EOF
+          chmod 600 ~/.gnupg/gpg.conf
           gpg --batch --import <<< "$GPG_PRIVATE_KEY"
-          gpg --list-secret-keys --keyid-format long
           SIGNING_KEY=$(gpg --list-secret-keys --keyid-format long | grep sec | head -1 | awk '{print $2}' | cut -d'/' -f2)
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282@users.noreply.github.com"
           git config commit.gpgsign true
           git config user.signingkey "$SIGNING_KEY"
         env:
