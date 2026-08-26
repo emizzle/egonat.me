@@ -15,9 +15,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Push empty commit to prevent workflow inactivity disablement
+      - name: Import GPG key
         run: |
+          mkdir -p ~/.gnupg
+          cat > ~/.gnupg/gpg.conf <<EOF
+          pinentry-mode loopback
+          passphrase "$GPG_PASSPHRASE"
+          use-agent
+          EOF
+          gpg --batch --import <<< "$GPG_PRIVATE_KEY"
+          gpg --list-secret-keys --keyid-format long
+          SIGNING_KEY=$(gpg --list-secret-keys --keyid-format long | grep sec | head -1 | awk '{print $2}' | cut -d'/' -f2)
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config commit.gpgsign true
+          git config user.signingkey "$SIGNING_KEY"
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Push signed empty commit
+        run: |
           git commit --allow-empty -m "chore: workflow keepalive — prevent activity-based disabling"
           git push
