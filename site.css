@@ -6,8 +6,8 @@
   --rule:#DDD9D0;
   --plot:#1B4D7A;
   --signal:#8B2A6B;
-  --mono:"IBM Plex Mono",ui-monospace,monospace;
-  --sans:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --mono:"Noto Sans Mono",ui-monospace,monospace;
+  --sans:"Noto Sans",system-ui,-apple-system,sans-serif;
   --wrap:1080px;
 }
 *{box-sizing:border-box}
@@ -15,9 +15,12 @@ html{scroll-behavior:smooth}
 body{
   margin:0;background:var(--paper);color:var(--graphite);
   font-family:var(--sans);font-size:16.5px;line-height:1.62;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
   -webkit-font-smoothing:antialiased;
 }
-.wrap{max-width:var(--wrap);margin:0 auto;padding:0 28px}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0px}
 a{color:var(--plot);text-decoration:none;border-bottom:1px solid rgba(27,77,122,.3)}
 a:hover{border-bottom-color:var(--plot)}
 a:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:2px}
@@ -42,7 +45,7 @@ h1{
   font-size:clamp(2.6rem,7.2vw,4.7rem);line-height:1.02;margin:0 0 20px;
 }
 .lede{
-  font-size:clamp(1.05rem,2.1vw,1.32rem);line-height:1.5;max-width:41ch;
+  font-size:clamp(1.05rem,2.1vw,1.32rem);line-height:1.5;max-width:62ch;
   color:var(--graphite);margin:0 0 30px;font-weight:400;
 }
 .links{display:flex;flex-wrap:wrap;gap:9px;pointer-events:auto}
@@ -82,11 +85,12 @@ h2{
   text-transform:uppercase;color:var(--slate);margin-top:8px;display:block;line-height:1.5;
 }
 
-/* ---------- timeline ---------- */
+/* ---------- timeline / resume ---------- */
 .role{
   display:grid;grid-template-columns:158px 1fr;gap:34px;
   padding:26px 0;border-top:1px solid var(--rule);
 }
+.role .when {margin-top:0;}
 .role:first-of-type{border-top:none}
 .when{
   font-family:var(--mono);font-size:12px;letter-spacing:.02em;
@@ -95,6 +99,7 @@ h2{
 .when b{display:block;color:var(--signal);font-weight:500}
 .langs{display:block;margin-top:9px;font-size:10.5px;letter-spacing:.06em;
        color:var(--slate);opacity:.85;line-height:1.75}
+.what {max-width:62ch}
 .what h3{
   font-family:var(--sans);font-size:1.09rem;font-weight:600;
   margin:0 0 5px;letter-spacing:-.008em;
@@ -104,9 +109,15 @@ h2{
   margin:0 0 11px;letter-spacing:.02em;
 }
 .what p{margin:0;color:#3A4247;font-size:.985rem;max-width:62ch}
+#resume ul {
+  padding-inline-start: 24px;
+}
+#resume ul li:not(:last-child) {
+    padding-bottom: 10px;
+}
 
 /* ---------- work cards ---------- */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(278px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
 .card{background:var(--paper);padding:26px 24px}
 .card .tag{
   font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
@@ -211,10 +222,12 @@ footer{
 /* ---------- responsive ---------- */
 @media (max-width:720px){
   .hero-inner{padding:64px 28px 56px 28px}
+  .wrap {padding: 0 28px}
+  .wrap.hero-inner {padding-bottom:20px}
   .role{grid-template-columns:1fr;gap:9px}
   .when{padding-top:0}
   .when b{display:inline;margin-right:8px}
-  .langs{display:inline;margin-top:0;margin-left:8px}
+  .langs{display:block;margin-top:0;}
   .stack-row{grid-template-columns:1fr;gap:6px}
   section{padding:54px 0}
   .pipe{grid-template-columns:1fr}

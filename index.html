@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%231B4D7A%27/%3E%3Ctext x=%2732%27 y=%2744%27 font-family=%27ui-monospace,monospace%27 font-size=%2734%27 font-weight=%27600%27 fill=%27%23FBFAF7%27 text-anchor=%27middle%27%3E%7B%7D%3C/text%3E%3C/svg%3E">
-<title>Eric Mastro, Senior Engineering Lead</title>
+<title>Eric Mastro, Tech Lead & Engineering Manager</title>
 <meta property="og:title" content="Eric Mastro, Senior Engineering Lead">
 <meta property="og:description" content="Protocol internals, on-chain markets, and the tooling in between. Nineteen years in systems software.">
 <meta name="description" content="Protocol internals, on-chain markets, and the tooling in between. Nineteen years in systems software.">
@@ -12,51 +12,37 @@
 <meta property="og:type" content="profile">
 <meta property="og:url" content="https://egonat.me/">
 <meta property="og:image" content="https://egonat.me/og/og-default.png">
-<meta property="og:image:alt" content="Protocol internals, on-chain markets, and the tooling in between. Nineteen years in systems software.">
+<meta property="og:image:alt" content="Senior tech lead with 19 years of experience building distributed systems, blockchain protocols, and Web3 applications.">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="preload" href="/site.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="/site.css"></noscript>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@100..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap"></noscript>
+<link rel="stylesheet" href="/site.css">
 </head>
 <body>
 
 <header class="hero">
   <canvas id="net" aria-hidden="true"></canvas>
   <div class="wrap hero-inner">
-    <p class="eyebrow">Greater Sydney, Australia &nbsp;·&nbsp; <b>Open to remote</b></p>
+    <p class="eyebrow">Greater Sydney, Australia &nbsp;·&nbsp; <b>Open to contract/perm</b></p>
     <h1>Eric Mastro</h1>
-    <p class="lede">Protocol internals, on-chain markets, and the tooling in between. Nineteen years, from enterprise .NET to peer-to-peer storage. Drawn to solving problems that make the world a better place, and to building tools that developers love to use.</p>
+    <p class="lede">Senior tech lead and engineering manager with 19 years of experience building distributed systems, blockchain protocols, and Web3 applications. Promoted twice in 18 months, leading international engineering teams of up to six people across fully remote, open-source startups. Deep background in smart contract tooling, decentralised storage, and full-stack .NET development.</p>
     <nav class="links">
-      <a href="#work">Work</a>
+      <a href="#work">Selected Work&nbsp;↓</a>
+      <a href="#resume">Resume&nbsp;↓</a>
       <a href="https://github.com/emizzle">GitHub</a>
       <a href="https://linkedin.com/in/ericmastro">LinkedIn</a>
       <a href="mailto:hireme@egonat.me">Email</a>
-      <a href="/Eric_Mastro_Resume.pdf">Résumé&nbsp;↓</a>
     </nav>
   </div>
 </header>
 
 <main>
 
-<section class="thesis">
-  <div class="wrap">
-    <p class="sec-label">Until September 2026</p>
-    <h2>Engineering lead, Logos Storage.</h2>
-    <p>A privacy-preserving decentralised storage protocol serving a community of about 7,500. Led the marketplace team through design, threat modelling, implementation and a public testnet, then set technical direction across protocol, contracts, interop and documentation.</p>
-    <p>Before that: nineteen years of systems software. Eight in peer-to-peer networking and Ethereum infrastructure at Status and Codex; eleven before that building enterprise platforms in the .NET world. Production code in Nim, Solidity, TypeScript, Go, C, and C++, and still more pull requests reviewed than opened.</p>
 
-    <div class="metrics">
-      <div class="metric"><span class="n">796</span><span class="k">Pull requests<br>authored since 2018</span></div>
-      <div class="metric"><span class="n">934</span><span class="k">Pull requests<br>reviewed since 2018</span></div>
-      <div class="metric"><span class="n">1,639</span><span class="k">Commits<br>since 2018</span></div>
-      <div class="metric"><span class="n">19</span><span class="k">Years<br>writing software</span></div>
-    </div>
-  </div>
-</section>
 
 <section id="work">
   <div class="wrap">
@@ -68,80 +54,116 @@
         <p>From research proposal, through to design, epic breakdown, cross-repository implementation, testing, and specification. <a href="/how-i-work">See how I work &rarr;</a></p>
       </div>
       <div class="card">
-        <p class="tag">Mechanism design</p>
+        <p class="tag">Adversarial mechanism design</p>
         <h3>Slot reservations</h3>
-        <p>Uncapped competition meant many providers downloading the same content for a lucrative storage request could DDoS the client that created it, and potentially centralise storage hosting to the most resourced providers (eg data centers). Slot reservations fixed this by first capping the number of competing providers and second by using the value of a transaction to signal intent. Designing this feature included an adversarial analysis covering six named attacker classes and a written record of every mechanism that did not make the cut. <a href="/slot-reservations">Read the design &rarr;</a></p>
+        <p>Reserving slots prevented a protocol-driven DDoS on the node that issued a storage request, using an expanding window mechanism governed by Kademlia distance. <a href="/slot-reservations">Read the design &rarr;</a></p>
       </div>
       <div class="card">
-        <p class="tag">Protocol design</p>
+        <p class="tag">Complex production debugging</p>
         <h3>On-chain marketplace</h3>
-        <p>An on-chain storage market where clients pay providers to store data durably: threat modelling and mitigation, incentive and collateral design, then planning, implementation, <a href="https://lip.logos.co/storage/deprecated/codex-marketplace.html">spec writing</a>, testing and exploit preparedness. At the heart of the client-side implementation was a sales state machine. After log crawling the devnet and noticing issues, I put together a <a href="/recoverability-analysis">per-state recoverability analysis</a> giving every state in the sales machine a defined outcome under crash, power loss and asynchronous cancellation.</p>
+        <p><a href="/recoverability-analysis">Redesigned the entire sales state machine architecture</a> after analysing recoverability during exceptions, cancellations, and hardware failures in the live network.</p>
       </div>
       <div class="card">
         <p class="tag">Gas economics</p>
         <h3>10&times; cheaper state restoration</h3>
-        <p>Two contract data structures to store storage request state were benchmarked for their gas efficiency. The Worst-case slot-freeing fell from 3,115,596 to 302,584 gas. The report priced the difference in euros at live rates and ended the debate. <a href="/marketplace-state-restoration">Read the analysis &rarr;</a></p>
+        <p>Two contract data structures to store storage request state were benchmarked for their gas efficiency. Each data structure had their trade-offs, but there was a clear winner for our needs. <a href="/marketplace-state-restoration">Read the analysis &rarr;</a></p>
       </div>
       <div class="card">
         <p class="tag">Project leadership</p>
-        <h3>Marketplace to Logos Storage</h3>
-        <p>Twelve epics breaking a roadmap into workstreams across two repositories. A year of weekly programme updates published to the <a href="https://github.com/logos-co/roadmap">public roadmap</a>, a delivery board run from planning through launch, and a public testnet that reached roughly a hundred participants.</p>
+        <h3>Logos Storage</h3>
+        <p>Led Logos Storage through a <a href="https://github.com/logos-co/roadmap">company-wide transformation</a> to operationally and technically align with the executive board's vision. Drove the protocol's strategic pivot from a durable storage model to a bittorrent-like file sharing and replication model. Chaired working groups to redefine the roadmap, establishing a new technical direction while maximising speed to market.</p>
       </div>
       <div class="card">
-        <p class="tag">Developer tooling</p>
-        <h3>Tools other engineers live in</h3>
-        <p><a href="https://github.com/embarklabs/embark">Embark</a>, an Ethereum development framework: 263 pull requests authored, 378 reviewed, and a plugin ecosystem spanning security analysis, Plasma chains and zkSNARKs. <a href="https://github.com/emizzle/nimv"><code>nimv</code></a>, a Nim toolchain manager that stops you installing a binary your OS cannot run, shipped through Homebrew, Chocolatey and apt. <a href="https://github.com/logos-storage/nim-serde"><code>nim-serde</code></a> and <a href="https://github.com/logos-storage/nim-ethers"><code>nim-ethers</code></a>, the serialisation and contract-interaction libraries the whole stack is built on.</p>
+        <p class="tag">Marketing and thought leadership</p>
+        <h3>Conference talks and workshops</h3>
+        <p>Improved product visibility across eight years of international conference talks and workshops, bringing highly technical concepts within reach of non-technical participants. Since 2018, I've given ten technical talks and workshops that not only educated attendees, but also marketed the product, created promotional material, broadened the product's reach and visibility, and showcased thought leadership in the Ethereum world.</p>
       </div>
     </div>
   </div>
 </section>
 
-<section>
+<section id="resume">
   <div class="wrap">
-    <p class="sec-label">Track</p>
+    <p class="sec-label">Resume • <a href="Eric_Mastro_Resume.pdf">Download PDF</a></p>
 
     <div class="role">
-      <p class="when"><b>2025–2026</b>Logos Storage<span class="langs">Nim · JavaScript · C · C++ · Shell · C#</span></p>
+      <p class="when"><b>Nov 2025 – Oct 2026</b>Status, Remote<span class="langs">Nim · Node.js · C# · CI/CD</span></p>
       <div class="what">
-        <h3>Engineering Lead</h3>
-        <p class="where">2 direct reports, 3 indirect · Remote<br>202 commits · 95 PRs authored · 75 reviewed</p>
-        <p>Technical direction and delivery for the storage protocol. Led the strategic pivot from an on-chain marketplace to gossip-based altruistic replication, ran cross-organisation requirements gathering with the Waku and Status Desktop teams, and acted as temporary lead for the whole team through the Codex to Logos Storage transition.</p>
+        <h3>Tech Lead & Engineering Manager, Logos Storage</h3>
+        <ul>
+          <li>Negotiated delivery timeframes, roadmap, and requirements with executive leadership for a team of five reporting engineers.</li>
+          <li>Shipped the first Logos Storage integration into Status Desktop on time and under budget, coordinating across engineering teams.</li>
+          <li>Cleared the path for engineers while reviewing code, mentoring direct reports, and contributing to the engineering work.</li>
+          <li>Delivered C and Go bindings for the Logos Storage client, enabling SDK-like use as a data layer in external projects.</li>
+          <li>Deployed an ephemeral Kubernetes cluster on Google Cloud Platform for distributed release testing, cutting average release cycle costs by 50% through Terraform IaC.</li>
+          <li>Set up Prometheus and Grafana observability for bootstrap nodes, enabling fast incident response and sustained production uptime.</li>
+          <li>Automated generation and deployment of C, C++, and OpenAPI reference documentation using GitHub CI/CD workflows.</li>
+        </ul>
       </div>
     </div>
 
     <div class="role">
-      <p class="when"><b>2024–2025</b>Codex<span class="langs">Solidity · Nim · JavaScript</span></p>
+      <p class="when"><b>Jul 2024 – Nov 2025</b>Status, Remote<span class="langs">Solidity · Nim · Node.js · CI/CD</span></p>
       <div class="what">
-        <h3>Marketplace Team Lead</h3>
-        <p class="where">4 direct reports · Remote<br>197 commits · 118 PRs authored · 186 reviewed</p>
-        <p>Led the team building the on-chain storage market: requests, slot filling, zero-knowledge proof verification, validators, slashing and repair. Set the half-year engineering programme against measurable reliability, gas and latency targets, and ran the Arbitrum L2 evaluation.</p>
+        <h3>Tech Lead for Marketplace, Logos Storage</h3>
+        <ul>
+          <li>Led a remote team of six international engineers through the full SDLC, reviewing all code across 41 repositories that entered the marketplace.</li>
+          <li>Owned roadmap, requirements, architecture, and delivery for the on-chain storage marketplace, shipping three test networks with over 100 active participants.</li>
+          <li>Led adversarial mechanism and protocol design of the storage marketplace EVM contracts, working across legal compliance requirements.</li>
+          <li>Co-authored a unique token custody design that limits what a compromised contract can do with escrowed funds, leading to the publication of the ERC-8233 token standard (Draft).</li>
+          <li>Championed design write-ups before writing code, improving transparency for the executive board and end users, and raising sprint estimation accuracy by over 30%.</li>
+          <li>Architected slot reservations to prevent a protocol-driven DDoS on the node that issued a storage request, using an expanding window mechanism governed by Kademlia distance.</li>
+          <li>Redesigned the entire state machine architecture after analysing recoverability during exceptions, cancellations, and hardware failures.</li>
+          <li>Drove the client and smart contract audit, including formal verification with Certora, and designed contract observability and emergency preparedness procedures in case of an exploit.</li>
+        </ul>
       </div>
     </div>
 
     <div class="role">
-      <p class="when"><b>2021–2024</b>Codex<span class="langs">Nim · Solidity · JavaScript</span></p>
+      <p class="when"><b>Oct 2021 – Jul 2024</b>Status, Remote<span class="langs">Nim · Solidity · Node.js · CI/CD</span></p>
       <div class="what">
-        <h3>Senior Distributed Networking Engineer</h3>
-        <p class="where">Remote<br>314 commits · 147 PRs authored · 147 reviewed</p>
-        <p>Core contributor to the protocol node in Nim: peer discovery, content-addressed block storage, erasure coding and storage proofs. Adapted discv5 into the project's DHT, and authored <a href="https://github.com/logos-storage/nim-ethers"><code>nim-ethers</code></a> and <a href="https://github.com/logos-storage/nim-serde"><code>nim-serde</code></a>.</p>
+        <h3>Senior Distributed Networking Engineer, Logos Storage</h3>
+        <ul>
+          <li>Presented Logos Storage at four international conferences and guest panels, providing technical workshops for developers as well as increasing product visibility and community reach.</li>
+          <li>Implemented zero-knowledge proof verification in marketplace contracts, guaranteeing storage providers held datasets with nine nines of certainty.
+          <li>Modified DiscV5 to use SignedPeerRecords in the DHT, removing one class of DHT poisoning attacks.</li>
+          <li>Architected an asynchronous state machine to react to Ethereum contract events, reducing node CPU load by 15%.</li>
+          <li>Engineered a slot queuing mechanism for storage providers to handle concurrent storage requests, increasing slot coverage to 100%.</li>
+          <li>Created a parallel test harness that reduced integration test time by 50% on GitHub CI runners.</li>
+          <li>Developed a contracts test harness using Hardhat (JavaScript), achieving 100% end-to-end and integration test coverage.</li>
+          <li>Implemented the client REST API for creating and modifying storage requests, enabling remote interaction with the storage network.</li>
+          <li>Wrote design documents that reduced engineer onboarding delay by more than two weeks.</li>
+        </ul>
       </div>
     </div>
 
     <div class="role">
-      <p class="when"><b>2020–2021</b>Status<span class="langs">Nim · C++ · QML · JavaScript</span></p>
+      <p class="when"><b>Apr 2020 – Oct 2021</b>Status, Remote<span class="langs">Go · Qt/QML · Nim · JavaScript</span></p>
       <div class="what">
-        <h3>Senior Qt and Nim Engineer</h3>
-        <p class="where">Remote<br>188 commits · 176 PRs authored · 144 reviewed</p>
-        <p>Desktop client features in Nim, C++, Qt and QML across <a href="https://github.com/status-im/status-desktop"><code>status-app</code></a>, <a href="https://github.com/status-im/status-go"><code>status-go</code></a> and <a href="https://github.com/status-im/StatusQ"><code>StatusQ</code></a>: communities, channels, wallet history, ENS validation and a paid sticker market. Also work on <code>DOtherSide</code> and <code>nimqml</code>, the Nim to C++ FFI bridge letting a Qt application be driven by a Nim codebase, and on <code>nim-sqlcipher</code>, the encrypted store holding user data at rest.</p>
+        <h3>Senior Full Stack Software Engineer, Status Desktop</h3>
+        <ul>
+          <li>Introduced a thread pool task manager that moved blocking tasks off the main UI thread, preventing the UI from freezing. This work later became the basis for the task runner library.</li>
+          <li>Created the sticker pack market feature in the wallet, allowing users to purchase sticker packs on-chain and creating the app's only revenue source.
+          <li>Established the 'Send Transaction' flow by creating reusable components, reducing future flow development time by up to 80%.</li>
+          <li>Replaced exception-based error handling with Result types, forcing immediate error checking using standard control flow and reducing escaped exceptions in the Qt layer.</li>
+          <li>Built the entire wallet account management functionality, the most visible component in the product.</li>
+        </ul>
       </div>
     </div>
 
     <div class="role">
-      <p class="when"><b>2018–2020</b>Status<span class="langs">Node.js · JavaScript · TypeScript · Solidity</span></p>
+      <p class="when"><b>Apr 2018 – Apr 2020</b>Status<span class="langs">Node.js · JavaScript · TypeScript · Solidity</span></p>
       <div class="what">
-        <h3>Senior JavaScript / TypeScript Engineer, Embark</h3>
-        <p class="where">Remote<br>738 commits · 260 PRs authored · 382 reviewed</p>
-        <p>Core contributor to the Embark developer framework and its plugin ecosystem. Authored <code>swarm-api</code>, and presented the framework at conferences across four continents.</p>
+        <h3>Senior Full Stack Software Engineer, Embark Framework</h3>
+        <ul>
+          <li>Spearheaded the Embark plugin ecosystem, opening the tooling to the entire FOSS community.</li>
+          <li>Led interactive workshops at six international events showcasing Embark's feature set, including EDCON in Sydney, Devcon IV, and DappCon Berlin.</li>
+          <li>Prototyped next-generation features, building an in-browser Fiddle that compiles and deploys Solidity contracts and shows a process log viewer.</li>
+          <li>Sandboxed the REPL-like interactive console inside a VM2 instance, ensuring untrusted code ran isolated from the host.</li>
+          <li>Engineered an RPC proxy to support EIP-712 transactions and decode raw transactions signed by mnemonic-derived accounts.</li>
+          <li>Shipped IPFS and Swarm plugins to enable dApp deployment to decentralised storage networks.</li>
+          <li>Engaged with end users to implement new features and fix bugs, contributing 738 commits, 260 pull requests, and 382 pull request reviews.</li>
+        </ul>
       </div>
     </div>
 
@@ -160,21 +182,34 @@
   <div class="wrap">
     <p class="sec-label">Stack</p>
     <dl style="margin:0">
-      <div class="stack-row"><dt>Languages</dt><dd>Nim · TypeScript · Go · C · C++ · Solidity · C#/.NET · Python</dd></div>
-      <div class="stack-row"><dt>Distributed</dt><dd>libp2p · discv5 · Kademlia DHT · gossipsub · erasure coding · content addressing · NAT traversal</dd></div>
-      <div class="stack-row"><dt>Blockchain</dt><dd>Ethereum L1 &amp; L2 (Arbitrum, Linea) · contract design &amp; gas optimisation · zero-knowledge storage proofs · mechanism design</dd></div>
-      <div class="stack-row"><dt>Interop</dt><dd>C FFI · Go CGO · Qt/QML</dd></div>
-      <div class="stack-row"><dt>Platform</dt><dd>Docker · Kubernetes · Nix · GitHub Actions · Linux · CI/CD design</dd></div>
+      <div class="stack-row"><dt>Languages</dt><dd>Nim · Node.js (JavaScript/TypeScript) · Solidity · QML · C# · Go</dd></div>
+      <div class="stack-row"><dt>Distributed systems & Web3</dt><dd>Ethereum · EVM smart contracts · P2P networking · systems programming</dd></div>
+      <div class="stack-row"><dt>Platform & infra</dt><dd>Kubernetes · Terraform (IaC) · Prometheus · Grafana · GitHub Actions · API design</dd></div>
+      <div class="stack-row"><dt>Frameworks</dt><dd>React · Redux · Qt · .NET</dd></div>
     </dl>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="sec-label">Stats</p>
+
+    <div class="metrics">
+      <div class="metric"><span class="n">796</span><span class="k">Pull requests<br>authored since 2018</span></div>
+      <div class="metric"><span class="n">934</span><span class="k">Pull requests<br>reviewed since 2018</span></div>
+      <div class="metric"><span class="n">1,639</span><span class="k">Commits<br>since 2018</span></div>
+      <div class="metric"><span class="n">19</span><span class="k">Years<br>writing software</span></div>
+    </div>
   </div>
 </section>
 
 <section class="contact">
   <div class="wrap">
     <p class="sec-label">Contact</p>
-    <h2>Open to staff-level and engineering leadership roles.</h2>
-    <p class="thesis" style="max-width:56ch;color:#31383E">Remote preferred. Happy to talk about protocol work, systems infrastructure, developer platform, or anything peer-to-peer.</p>
+    <h2>Open to engineering leadership and staff-level IC roles.</h2>
+    <p class="thesis" style="max-width:56ch;color:#31383E">Happy to talk about web3, blockchain protocol work, systems infrastructure, developer platform, or anything peer-to-peer.</p>
     <nav class="links">
+      <a href="/Eric_Mastro_Resume.pdf">Resume (PDF)</a>
       <a href="mailto:hireme@egonat.me">hireme@egonat.me</a>
       <a href="https://github.com/emizzle">github.com/emizzle</a>
       <a href="https://linkedin.com/in/ericmastro">linkedin.com/in/ericmastro</a>
