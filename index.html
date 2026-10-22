@@ -39,10 +39,7 @@
     </nav>
   </div>
 </header>
-
 <main>
-
-
 
 <section id="work">
   <div class="wrap">
@@ -51,32 +48,69 @@
       <div class="card">
         <p class="tag">How I work</p>
         <h3>One feature, end-to-end</h3>
-        <p class="truncate">From research proposal, through to design, epic breakdown, cross-repository implementation, testing, and specification. <a href="/how-i-work">See how I work &rarr;</a></p>
+        <div class="clamp-box" data-collapsed>
+          <div class="content">
+            <p class="truncated">From research proposal, through to design, epic breakdown, cross-repository implementation, testing, and…
+            <p class="expanded">From research proposal, through to design, epic breakdown, cross-repository implementation, testing, and specification. <a href="/how-i-work">See how I work &rarr;</a></p>
+          </div>
+          <button class="toggle" aria-expanded="false" aria-controls="c1">Show more</button>
+        </div>
+
       </div>
       <div class="card">
         <p class="tag">Adversarial mechanism design</p>
         <h3>Slot reservations</h3>
-        <p class="truncate">Reserving slots prevented a protocol-driven DDoS on the node that issued a storage request, using an expanding window mechanism governed by Kademlia distance. <a href="/slot-reservations">Read the design &rarr;</a></p>
+        <div class="clamp-box" data-collapsed>
+          <div class="content">
+            <p class="truncated">Reserving slots prevented a protocol-driven DDoS on the node that issued a storage request, using an expanding window…</p>
+            <p class="expanded">Reserving slots prevented a protocol-driven DDoS on the node that issued a storage request, using an expanding window mechanism governed by Kademlia distance. <a href="/slot-reservations">Read the design &rarr;</a></p>
+          </div>
+          <button class="toggle" aria-expanded="false" aria-controls="c1">Show more</button>
+        </div>
       </div>
       <div class="card">
         <p class="tag">Complex production debugging</p>
         <h3>On-chain marketplace</h3>
-        <p class="truncate"><a target="_blank" href="/recoverability-analysis">Redesigned the entire sales state machine architecture ↗︎</a> after analysing recoverability during exceptions, cancellations, and hardware failures in the live network.</p>
+        <div class="clamp-box" data-collapsed>
+          <div class="content">
+            <p class="truncated"><a target="_blank" href="/recoverability-analysis">Redesigned the entire sales state machine architecture ↗︎</a> after analysing recoverability during exceptions, cancellations, and…</p>
+            <p class="expanded"><a target="_blank" href="/recoverability-analysis">Redesigned the entire sales state machine architecture ↗︎</a> after analysing recoverability during exceptions, cancellations, and hardware failures in the live network.</p>
+          </div>
+          <button class="toggle" aria-expanded="false" aria-controls="c1">Show more</button>
+        </div>
       </div>
       <div class="card">
         <p class="tag">Gas economics</p>
         <h3>10&times; cheaper state restoration</h3>
-        <p class="truncate">Two contract data structures to store storage request state were benchmarked for their gas efficiency. Each data structure had their trade-offs, but there was a clear winner for our needs. <a href="/marketplace-state-restoration">Read the analysis &rarr;</a></p>
+        <div class="clamp-box" data-collapsed>
+          <div class="content">
+            <p class="truncated">Two contract data structures to store storage request state were benchmarked for their gas efficiency. Each data…</p>
+            <p class="expanded">Two contract data structures to store storage request state were benchmarked for their gas efficiency. Each data structure had their trade-offs, but there was a clear winner for our needs. <a href="/marketplace-state-restoration">Read the analysis &rarr;</a></p>
+          </div>
+          <button class="toggle" aria-expanded="false" aria-controls="c1">Show more</button>
+        </div>
       </div>
       <div class="card">
         <p class="tag">Project leadership</p>
         <h3>Logos Storage</h3>
-        <p class="truncate">Led Logos Storage through a <a target="_blank" href="https://github.com/logos-co/roadmap">company-wide transformation ↗︎</a> to operationally and technically align with the executive board's vision. Drove the protocol's strategic pivot from a durable storage model to a bittorrent-like file sharing and replication model. Chaired working groups to redefine the roadmap, establishing a new technical direction while maximising speed to market.</p>
+        <div class="clamp-box" data-collapsed>
+          <div class="content">
+            <p class="truncated">Led Logos Storage through a <a target="_blank" href="https://github.com/logos-co/roadmap">company-wide transformation ↗︎</a> to operationally and technically align with the executive…</p>
+            <p class="expanded">Led Logos Storage through a <a target="_blank" href="https://github.com/logos-co/roadmap">company-wide transformation ↗︎</a> to operationally and technically align with the executive board's vision. Drove the protocol's strategic pivot from a durable storage model to a bittorrent-like file sharing and replication model. Chaired working groups to redefine the roadmap, establishing a new technical direction while maximising speed to market.</p>
+          </div>
+          <button class="toggle" aria-expanded="false" aria-controls="c1">Show more</button>
+        </div>
       </div>
       <div class="card">
         <p class="tag">Marketing and thought leadership</p>
         <h3>Conference talks and workshops</h3>
-        <p class="truncate">Improved product visibility across eight years of international conference talks and workshops, bringing highly technical concepts within reach of non-technical participants. Since 2018, I've given ten technical talks and workshops that not only educated attendees, but also marketed the product, created promotional material, broadened the product's reach and visibility, and showcased thought leadership in the Ethereum world.</p>
+        <div class="clamp-box" data-collapsed>
+          <div class="content">
+            <p class="truncated">Improved product visibility across eight years of international conference talks and workshops, bringing highly technical…</p>
+            <p class="expanded">Improved product visibility across eight years of international conference talks and workshops, bringing highly technical concepts within reach of non-technical participants. Since 2018, I've given ten technical talks and workshops that not only educated attendees, but also marketed the product, created promotional material, broadened the product's reach and visibility, and showcased thought leadership in the Ethereum world.</p>
+          </div>
+          <button class="toggle" aria-expanded="false" aria-controls="c1">Show more</button>
+        </div>
       </div>
     </div>
   </div>
@@ -312,18 +346,15 @@
   requestAnimationFrame(frame);
 })();
 </script>
-<script defer="true" src="https://cdn.jsdelivr.net/gh/tomickigrzegorz/show-more@2.0.1/dist/js/showMore.min.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    new ShowMore('.truncate', {
-      config: {
-        type: "text",
-        limit: 120,
-        more: "Show more",
-        less: "Show less",
-        element: "div",
-        btnClass: "tag"
-      }
+    document.querySelectorAll('.clamp-box').forEach(box => {
+      const btn = box.querySelector('.toggle');
+      btn.addEventListener('click', () => {
+        const collapsed = box.toggleAttribute('data-collapsed');
+        btn.setAttribute('aria-expanded', String(!collapsed));
+        btn.textContent = collapsed ? 'Show more' : 'Show less';
+      });
     });
   });
 </script>

@@ -119,27 +119,14 @@ h2{
 /* ---------- work cards ---------- */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(278px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
 .card{background:var(--paper);padding:26px 24px}
-.card .tag{
+.card .toggle, .card .tag{
   font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
   text-transform:uppercase;color:var(--signal);margin:0 0 11px;
 }
 .card h3{font-size:1.02rem;font-weight:600;margin:0 0 9px;letter-spacing:-.008em}
 .card p{margin:0;font-size:.945rem;color:#3A4247;line-height:1.58}
-.card p:last::after {content:"<a href='#'>Show more</a>"}
-/*.show-more-btn {
-  margin: auto;
-  cursor: pointer;
-  color: #0095e5;
-  white-space: nowrap;
-  transition: color 300ms ease-in-out;
-  border: 0;
-  font-size: 0.8em;
-  background: transparent;
-}
-.show-more-btn:hover {
-  color: red;
-}*/
-.show-more-wrapper .tag{
+
+.clamp-box .toggle{
   border-width: 0 0 1px 0;
   border-style: solid;
   border-color: rgba(27,77,122,.3);
@@ -148,11 +135,8 @@ h2{
   line-height: 1.58;
   cursor: pointer;
 }
-.show-more-wrapper .tag:hover{border-bottom-color:var(--signal)}
-.show-more-wrapper .tag:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:2px}
-.hidden {
-  display: none;
-}
+.clamp-box .truncated, .clamp-box[data-collapsed] .expanded {display:none}
+.clamp-box[data-collapsed] .truncated, .clamp-box .expanded {display:inline}
 
 /* ---------- stack ---------- */
 .stack-row{display:grid;grid-template-columns:170px 1fr;gap:28px;padding:15px 0;border-top:1px solid var(--rule)}
